@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keysoundmap"
+version = "0.1.0"
+description = "Blue-team study of the keyboard acoustic side channel: a compact keystroke recognizer used to build and prove an active interference (anti-eavesdropping) countermeasure."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []  # core pipeline runs on the standard library only
+
+[project.optional-dependencies]
+# Numeric fast path + test runner for the development loop.
+dev = ["numpy>=1.23", "pytest>=7"]
+# Deep, small, efficient recognizers and the adversarial masker (Phase 3/5).
+train = ["numpy>=1.23", "torch>=2.0"]
+# Real keyboard capture (Phase 1) and live masking playback (Phase 7).
+capture = ["sounddevice>=0.4", "pynput>=1.7", "soundfile>=0.12"]
+
+[project.scripts]
+keysoundmap = "keysoundmap.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q"
+markers = [
+    "smoke: fast import + tiny end-to-end sanity checks",
+    "integration: multi-stage pipeline behavior (recognition, defense)",
+    "e2e: drives the CLI as a subprocess",
+]

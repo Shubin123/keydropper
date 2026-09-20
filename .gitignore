@@ -1,0 +1,35 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Packaging / build
+*.egg-info/
+build/
+dist/
+
+# Recorded/generated data (keep the dirs via .gitkeep, ignore contents)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+*.wav
+*.npz
+
+# Trained model checkpoints
+*.pt
+*.onnx
+*.tflite
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/

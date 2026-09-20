@@ -1,0 +1,5 @@
+# Real keyboard capture (Phase 1) and live masking playback (Phase 7).
+# Only needed on the machine doing the recording/defending.
+sounddevice>=0.4
+pynput>=1.7
+soundfile>=0.12

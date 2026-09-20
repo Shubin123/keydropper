@@ -1,0 +1,4 @@
+# Development loop: numeric fast path + test runner.
+# The library itself needs none of these — it falls back to a pure-Python core.
+numpy>=1.23
+pytest>=7

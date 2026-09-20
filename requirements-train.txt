@@ -1,0 +1,4 @@
+# Deep, small, efficient recognizers (TinyKeyCNN / BCResNetLite) and the learned
+# adversarial masker (Phase 3 / Phase 5 Tier-2).
+numpy>=1.23
+torch>=2.0
