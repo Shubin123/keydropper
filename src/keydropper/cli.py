@@ -3,11 +3,11 @@
 Runs the parts that work with zero third-party dependencies, so the plan's early
 phases are demonstrable immediately:
 
-    python -m keysoundmap.cli demo            # full toy pipeline + defense in one go
-    python -m keysoundmap.cli synth --out D   # write a synthetic labeled dataset
-    python -m keysoundmap.cli segment "text"  # show onset detection on a synth stream
-    python -m keysoundmap.cli eval-defense     # attacker accuracy with/without masking
-    python -m keysoundmap.cli info             # config + environment summary
+    python -m keydropper.cli demo            # full toy pipeline + defense in one go
+    python -m keydropper.cli synth --out D   # write a synthetic labeled dataset
+    python -m keydropper.cli segment "text"  # show onset detection on a synth stream
+    python -m keydropper.cli eval-defense     # attacker accuracy with/without masking
+    python -m keydropper.cli info             # config + environment summary
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ def cmd_info(args) -> int:
         except Exception:
             have[mod] = False
     n_frames = M.infer_n_frames(cfg.segment.window_ms, cfg.feature, cfg.audio)
-    print("keysoundmap — configuration")
+    print("keydropper — configuration")
     print(cfg.to_json())
     print(f"\nfeature vector: {n_frames} frames x {cfg.feature.n_mels} mels "
           f"= {n_frames * cfg.feature.n_mels} dims")
@@ -85,7 +85,7 @@ def cmd_eval_defense(args) -> int:
 
 def cmd_demo(args) -> int:
     cfg = _cfg_from_args(args)
-    print("=== keysoundmap demo (synthetic, dependency-free) ===\n")
+    print("=== keydropper demo (synthetic, dependency-free) ===\n")
 
     # Phase 2: segmentation quality.
     print("[Phase 2] onset segmentation on a typed stream")
@@ -117,7 +117,7 @@ def cmd_demo(args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="keysoundmap", description=__doc__)
+    p = argparse.ArgumentParser(prog="keydropper", description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sp = sub.add_parser("info", help="print config + environment")

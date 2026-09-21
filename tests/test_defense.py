@@ -11,8 +11,8 @@ import unittest
 import _pathfix  # noqa: F401
 from helpers import fast_config, FAST_KEYS
 
-from keysoundmap.interference.evaluate_defense import run_defense_benchmark
-from keysoundmap.interference.masker import DecoyBank, apply_masking
+from keydropper.interference.evaluate_defense import run_defense_benchmark
+from keydropper.interference.masker import DecoyBank, apply_masking
 
 
 class TestDefenseSuppressesAttacker(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestDefenseSuppressesAttacker(unittest.TestCase):
         self.assertAlmostEqual(report.chance, 1.0 / len(set(self.keys)), places=6)
 
     def test_masking_changes_the_signal(self):
-        from keysoundmap import synth
+        from keydropper import synth
         stream, truth = synth.render_stream("abcde fghij", self.cfg.audio, seed=3,
                                             window_ms=self.cfg.segment.window_ms)
         bank = DecoyBank.synthetic(self.keys, self.cfg.audio, self.cfg.segment.window_ms)

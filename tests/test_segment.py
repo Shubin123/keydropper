@@ -2,8 +2,8 @@ import unittest
 
 import _pathfix  # noqa: F401
 
-from keysoundmap.config import AudioConfig, SegmentConfig
-from keysoundmap import synth, segment as seg_mod
+from keydropper.config import AudioConfig, SegmentConfig
+from keydropper import synth, segment as seg_mod
 
 
 class TestSegmentation(unittest.TestCase):

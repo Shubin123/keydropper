@@ -4,7 +4,7 @@ import unittest
 
 import _pathfix  # noqa: F401
 
-from keysoundmap import dsp
+from keydropper import dsp
 
 
 def naive_dft_power(frame, n_fft):

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from keysoundmap.config import Config, FeatureConfig
+from keydropper.config import Config, FeatureConfig
 
 # A small keyboard for fast tests.
 FAST_KEYS = list("abcdefghij") + ["<space>"]

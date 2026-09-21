@@ -5,8 +5,8 @@ import unittest
 import _pathfix  # noqa: F401
 from helpers import fast_config, FAST_KEYS
 
-from keysoundmap import synth, segment as seg_mod
-from keysoundmap.data import label_detected_clips
+from keydropper import synth, segment as seg_mod
+from keydropper.data import label_detected_clips
 
 
 class TestDataAssembly(unittest.TestCase):

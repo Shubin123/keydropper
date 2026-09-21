@@ -13,27 +13,27 @@ from helpers import fast_config, FAST_KEYS
 class TestImports(unittest.TestCase):
     def test_all_modules_import(self):
         for mod in [
-            "keysoundmap",
-            "keysoundmap.config",
-            "keysoundmap.dsp",
-            "keysoundmap.synth",
-            "keysoundmap.segment",
-            "keysoundmap.features",
-            "keysoundmap.models",
-            "keysoundmap.data",
-            "keysoundmap.capture",
-            "keysoundmap.cli",
-            "keysoundmap.interference",
-            "keysoundmap.interference.masker",
-            "keysoundmap.interference.adversarial",
-            "keysoundmap.interference.evaluate_defense",
+            "keydropper",
+            "keydropper.config",
+            "keydropper.dsp",
+            "keydropper.synth",
+            "keydropper.segment",
+            "keydropper.features",
+            "keydropper.models",
+            "keydropper.data",
+            "keydropper.capture",
+            "keydropper.cli",
+            "keydropper.interference",
+            "keydropper.interference.masker",
+            "keydropper.interference.adversarial",
+            "keydropper.interference.evaluate_defense",
         ]:
             importlib.import_module(mod)
 
 
 class TestTinyEndToEnd(unittest.TestCase):
     def test_pipeline_runs(self):
-        from keysoundmap import synth, segment as seg_mod, models as M
+        from keydropper import synth, segment as seg_mod, models as M
         cfg = fast_config()
         stream, truth = synth.render_stream("abc", cfg.audio, seed=1,
                                             window_ms=cfg.segment.window_ms)

@@ -10,14 +10,14 @@ channel, not leakage between train and test.
 - Sample rate 16 kHz mono is enough; higher is fine (downsample in the pipeline).
 
 ## Capture
-`keysoundmap.capture.record(...)` records mic audio while `pynput` logs keypress
+`keydropper.capture.record(...)` records mic audio while `pynput` logs keypress
 timestamps, then `CaptureSession.save(wav, labels_json)` writes a WAV plus a JSON of
 `(t_seconds, key)` events. `to_onset_samples()` converts events to the
 `(onset_sample, key)` form the pipeline consumes.
 
 ```python
-from keysoundmap.config import AudioConfig
-from keysoundmap.capture import record
+from keydropper.config import AudioConfig
+from keydropper.capture import record
 s = record(AudioConfig(), duration_s=120)
 s.save("data/raw/session01.wav", "data/raw/session01.labels.json")
 ```

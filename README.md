@@ -1,4 +1,4 @@
-# keysoundmap
+# keydropper
 
 **Keyboards make noise. That noise can be mapped to keystrokes.** This repository
 studies that acoustic side channel **as a blue team**: it reproduces a compact
@@ -21,7 +21,7 @@ The whole pipeline is also ported to a **self-contained, dependency-free web app
 **Deploy to GitHub Pages:** in the repo, go to **Settings → Pages → Build and
 deployment → Source: GitHub Actions**. The workflow in
 [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) then publishes
-`web/` on every push, at `https://<user>.github.io/keysoundmap/`.
+`web/` on every push, at `https://<user>.github.io/keydropper/`.
 
 ## Two models, one repo
 1. **Recognizer** (the threat yardstick) — a small, efficient, on-device keystroke
@@ -59,7 +59,7 @@ i.e. a 97.5%-accurate eavesdropper is cut to ~39% by the masking defense.
 
 ## Layout
 ```
-src/keysoundmap/
+src/keydropper/
   config.py        # all hyperparameters in one reproducible place
   dsp.py           # pure-Python framing, Hann window, radix-2 FFT, energy envelope
   synth.py         # synthetic keyboard: fixed per-key identity + per-hit jitter
@@ -72,7 +72,7 @@ src/keysoundmap/
     masker.py            # Tier-1: spectrally-matched decoy masking (runs today)
     adversarial.py       # Tier-2: learned adversarial masker (torch)
     evaluate_defense.py  # red/blue harness: leakage reduction metric
-  cli.py           # `python -m keysoundmap.cli {demo,segment,eval-defense,synth,info}`
+  cli.py           # `python -m keydropper.cli {demo,segment,eval-defense,synth,info}`
 tests/             # smoke, unit, integration (cross-stream + defense), e2e (CLI)
 docs/              # THREAT_MODEL.md, DATA_COLLECTION.md
 PLAN.md            # the multi-phase plan and state-of-the-art references

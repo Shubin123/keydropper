@@ -1,4 +1,4 @@
-"""keysoundmap — a blue-team study of the keyboard acoustic side channel.
+"""keydropper — a blue-team study of the keyboard acoustic side channel.
 
 We reproduce a compact keystroke recognizer (the threat "measuring stick") only so
 that we can build and prove an *interference model*: an active acoustic countermeasure

@@ -1,4 +1,4 @@
-# keysoundmap dev-loop shortcuts.
+# keydropper dev-loop shortcuts.
 # The core runs on the stdlib; `make venv` adds numpy+pytest for a faster loop.
 
 PY ?= python3
@@ -36,10 +36,10 @@ smoke:
 	$(RUN) -m pytest tests/test_smoke.py
 
 demo:
-	PYTHONPATH=src $(RUN) -m keysoundmap.cli demo
+	PYTHONPATH=src $(RUN) -m keydropper.cli demo
 
 eval-defense:
-	PYTHONPATH=src $(RUN) -m keysoundmap.cli eval-defense
+	PYTHONPATH=src $(RUN) -m keydropper.cli eval-defense
 
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +

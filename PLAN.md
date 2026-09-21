@@ -1,4 +1,4 @@
-# keysoundmap — Multi-Phase Plan
+# keydropper — Multi-Phase Plan
 
 **Keyboards make noise. That noise can be mapped to keystrokes.**
 This project studies the acoustic side channel of keyboards **as a blue team**: we
@@ -70,14 +70,14 @@ Sources are listed at the bottom of this file.
 
 ## Phase 0 — Foundation & scaffolding  ✅ *built in this pass*
 **Goal:** a runnable skeleton with zero mandatory heavy dependencies.
-- Package layout `src/keysoundmap/*`, config dataclasses, CLI, tests, docs.
+- Package layout `src/keydropper/*`, config dataclasses, CLI, tests, docs.
 - Pure-Python DSP (framing, Hann window, radix-2 FFT, power spectrum) so the pipeline
   runs anywhere; optional numpy/torch fast paths documented for production.
 - **Synthetic keystroke generator** (`synth.py`): physically-motivated per-key click
   signatures (touch peak + hit peak + key-specific resonances + noise) → a labeled
   toy dataset, so segmentation/features/recognizer/defense can be exercised in CI
   without a microphone or real data.
-**Exit criteria:** `python -m keysoundmap.cli demo` runs end-to-end; `tests/` pass on
+**Exit criteria:** `python -m keydropper.cli demo` runs end-to-end; `tests/` pass on
 stdlib alone.
 
 ## Phase 1 — Data acquisition  ✅ *core built (synthetic) + real-capture design*
@@ -165,9 +165,9 @@ Legend: ✅ built · ◐ partially built (runnable core + coded deep parts) · �
 
 ## What runs today (Phases 0–3 + 5/6 cores)
 ```
-python -m keysoundmap.cli demo        # synth → segment → features → classify → defend
-python -m keysoundmap.cli synth ...    # write a synthetic labeled dataset
-python -m keysoundmap.cli eval-defense # attacker accuracy with vs without masking
+python -m keydropper.cli demo        # synth → segment → features → classify → defend
+python -m keydropper.cli synth ...    # write a synthetic labeled dataset
+python -m keydropper.cli eval-defense # attacker accuracy with vs without masking
 python -m pytest -q                    # (stdlib unittest also works: python -m unittest)
 ```
 

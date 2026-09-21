@@ -1,7 +1,7 @@
-/* keysoundmap web app — UI, visualizations, synthetic lab, and live mic capture. */
+/* keydropper web app — UI, visualizations, synthetic lab, and live mic capture. */
 (function () {
   "use strict";
-  const K = window.KSM;
+  const K = window.KD;
   const $ = (id) => document.getElementById(id);
   const tick = () => new Promise((r) => setTimeout(r, 0));
 

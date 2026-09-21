@@ -2,7 +2,7 @@ import unittest
 
 import _pathfix  # noqa: F401
 
-from keysoundmap import models as M
+from keydropper import models as M
 
 
 class TestClassifiers(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestClassifiers(unittest.TestCase):
         self.assertEqual(M.accuracy(clf.predict(X), y), 1.0)
 
     def test_infer_n_frames_positive(self):
-        from keysoundmap.config import AudioConfig, FeatureConfig
+        from keydropper.config import AudioConfig, FeatureConfig
         n = M.infer_n_frames(120.0, FeatureConfig(), AudioConfig())
         self.assertGreater(n, 1)
 
@@ -48,7 +48,7 @@ class TestClassifiers(unittest.TestCase):
 
 class TestDeepModelsGuarded(unittest.TestCase):
     def test_torch_models_build_or_raise_cleanly(self):
-        from keysoundmap.config import ModelConfig
+        from keydropper.config import ModelConfig
         try:
             import torch  # noqa: F401
         except Exception:

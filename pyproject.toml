@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "keysoundmap"
+name = "keydropper"
 version = "0.1.0"
 description = "Blue-team study of the keyboard acoustic side channel: a compact keystroke recognizer used to build and prove an active interference (anti-eavesdropping) countermeasure."
 readme = "README.md"
@@ -20,7 +20,7 @@ train = ["numpy>=1.23", "torch>=2.0"]
 capture = ["sounddevice>=0.4", "pynput>=1.7", "soundfile>=0.12"]
 
 [project.scripts]
-keysoundmap = "keysoundmap.cli:main"
+keydropper = "keydropper.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

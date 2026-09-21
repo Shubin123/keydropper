@@ -15,8 +15,8 @@ import unittest
 import _pathfix  # noqa: F401
 from helpers import fast_config, FAST_KEYS
 
-from keysoundmap import synth, models as M
-from keysoundmap.data import label_detected_clips, build_training_set
+from keydropper import synth, models as M
+from keydropper.data import label_detected_clips, build_training_set
 
 
 def _stream_features(cfg, keys, seed, n=120):

@@ -1,5 +1,5 @@
 /*
- * keysoundmap — browser port of the acoustic keystroke pipeline.
+ * keydropper — browser port of the acoustic keystroke pipeline.
  *
  * Blue team: a compact keystroke recognizer used purely to measure leakage and to
  * prove the interference (masking) countermeasure. Faithful to the Python reference,
@@ -9,7 +9,7 @@
  *   - features are aligned to the transient peak so absolute-position offsets from the
  *     onset detector do not break cross-recording recognition.
  *
- * No external dependencies. Everything is a plain function on a global `KSM` object so
+ * No external dependencies. Everything is a plain function on a global `KD` object so
  * the page also works when opened directly from disk (file://).
  */
 (function (global) {
@@ -489,7 +489,7 @@
     return s;
   };
 
-  global.KSM = {
+  global.KD = {
     CFG, DEFAULT_KEYS, Rng, dsp, synth, segment, features, models, data, masker, defense,
   };
 })(typeof window !== "undefined" ? window : this);

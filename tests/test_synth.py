@@ -2,8 +2,8 @@ import unittest
 
 import _pathfix  # noqa: F401
 
-from keysoundmap.config import AudioConfig
-from keysoundmap import synth
+from keydropper.config import AudioConfig
+from keydropper import synth
 
 
 class TestSynth(unittest.TestCase):

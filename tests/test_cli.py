@@ -15,7 +15,7 @@ def run_cli(*args):
     env = dict(os.environ)
     env["PYTHONPATH"] = SRC + os.pathsep + env.get("PYTHONPATH", "")
     return subprocess.run(
-        [sys.executable, "-m", "keysoundmap.cli", *args],
+        [sys.executable, "-m", "keydropper.cli", *args],
         cwd=ROOT, env=env, capture_output=True, text=True, timeout=120,
     )
 
