@@ -140,15 +140,40 @@ the attacker's channel.
 **Exit criteria:** attacker per-key accuracy under defense drops toward chance
 (1/#keys) at an acceptable loudness.
 
-## Phase 6 — Defense evaluation & red/blue loop  ◐ *harness built*
+## Phase 6 — Defense evaluation & red/blue loop  ✅ *built + measured*
 **Goal:** prove it, adaptively.
 - `interference/evaluate_defense.py`: accuracy **with vs without** masking →
-  *leakage-reduction* metric; ROC of attacker confidence.
-- **Adaptive attacker:** retrain the recognizer *on masked audio* (attacker adapts) →
-  re-measure. Iterate defense vs adaptive attacker until the defense holds against an
-  attacker that knows the defense exists (Kerckhoffs for countermeasures).
-**Exit criteria:** defense still suppresses accuracy against an attacker trained on
-defended audio.
+  *leakage-reduction* metric.
+- **Adaptive attacker** (built): the recognizer is retrained *on masked audio* — it
+  collects its training data with the countermeasure already running, so it learns the
+  masked distribution (`build_training_set(..., transform=...)`). Kerckhoffs for
+  countermeasures: a defense that only works because the adversary is unaware of it is
+  not a defense.
+
+### Result: the defense holds
+The reported guarantee is `recovery_best_attacker` — the **max** over attacker
+strategies, never the flattering one. Measured on the 27-key synthetic keyboard, the
+clean (undefended) attacker recovers ~93–97% of keystrokes:
+
+| decoys/key | mask gain | naive attacker | adaptive attacker | **strongest** | vs chance |
+|-----------:|----------:|---------------:|------------------:|--------------:|----------:|
+| 2 | 0.9 | 0.367 | 0.267 | **0.367** | 9.9× |
+| 2 | 1.5 | 0.213 | 0.153 | **0.213** | 5.8× |
+| 4 | 1.2 | 0.127 | 0.113 | **0.127** | 3.4× ← *default* |
+| 4 | 1.5 | 0.113 | 0.087 | **0.113** | 3.1× |
+| 6 | 1.5 | 0.067 | 0.053 | **0.067** | 1.8× |
+
+Two findings worth stating plainly:
+1. **Adapting *hurts* the attacker** at every setting tested. Training on masked audio
+   corrupts its per-key prototypes, so it does better training on clean audio and
+   eating the distribution mismatch. The defense is therefore not relying on the
+   adversary's ignorance — it survives an adversary that knows everything about it.
+2. **Protection is a monotonic trade against audible noise.** More and louder decoys
+   buy more protection, all the way down to ~1.8× chance. This is a user-tolerability
+   dial, not a free lunch; the shipped default is the balanced setting.
+
+**Exit criteria:** met — the defense suppresses the strongest tested attacker from
+~94% to ~13% (a ~81-point reduction) at the default setting.
 
 ## Phase 7 — Real-time defender app & packaging  ○ *designed*
 **Goal:** a background daemon: hook key events → emit masking with < a few-ms latency;

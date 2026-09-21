@@ -54,12 +54,12 @@
           <input id="evallen" type="range" min="60" max="300" value="150" step="30" />
         </div>
         <div class="ctrl">
-          <label for="maskgain">Masking loudness <span id="maskgainVal" class="val">0.9</span></label>
-          <input id="maskgain" type="range" min="0" max="2" value="0.9" step="0.1" />
+          <label for="maskgain">Masking loudness <span id="maskgainVal" class="val">1.2</span></label>
+          <input id="maskgain" type="range" min="0" max="2" value="1.2" step="0.1" />
         </div>
         <div class="ctrl">
-          <label for="decoys">Decoys / keystroke <span id="decoysVal" class="val">2</span></label>
-          <input id="decoys" type="range" min="0" max="5" value="2" step="1" />
+          <label for="decoys">Decoys / keystroke <span id="decoysVal" class="val">4</span></label>
+          <input id="decoys" type="range" min="0" max="8" value="4" step="1" />
         </div>
         <button id="runBtn" class="primary">Run attack &amp; defense</button>
       </div>
@@ -70,7 +70,8 @@
         <div class="metric"><div class="mval" id="mF1">–</div><div class="mlabel">onset detection F1</div></div>
         <div class="metric"><div class="mval" id="mAcc">–</div><div class="mlabel">recognizer accuracy<br/>(unseen recording)</div></div>
         <div class="metric danger"><div class="mval" id="mClean">–</div><div class="mlabel">attacker recovery<br/><em>no defense</em></div></div>
-        <div class="metric good"><div class="mval" id="mDef">–</div><div class="mlabel">attacker recovery<br/><em>with masking</em></div></div>
+        <div class="metric good"><div class="mval" id="mDef">–</div><div class="mlabel">strongest attacker<br/><em>with masking</em></div></div>
+        <div class="metric"><div class="mval" id="mAda">–</div><div class="mlabel">adaptive attacker<br/><em>trained on masked audio</em></div></div>
         <div class="metric"><div class="mval" id="mRed">–</div><div class="mlabel">leakage reduction</div></div>
       </div>
 
@@ -165,6 +166,16 @@
           <li><strong>Interfere</strong>: overlay spectrally-matched decoy keystrokes to mask the real ones.</li>
           <li><strong>Evaluate</strong>: recovery accuracy with vs. without the defense.</li>
         </ol>
+        <h2>Does the defense survive an attacker who knows about it?</h2>
+        <p>
+          Yes — and that is the only test that counts. The lab also trains an
+          <strong>adaptive attacker</strong> that collects its training data with the
+          masking already switched on, so it learns the masked sound rather than the
+          clean one. It does no better; in fact it does slightly <em>worse</em>, because
+          the decoys corrupt the per-key templates it is trying to learn. The headline
+          number always reports the <strong>strongest</strong> of the two attackers,
+          never the flattering one.
+        </p>
         <h2>Two things that make recognition work</h2>
         <p>
           The keyboard's per-key sound is a <em>fixed identity</em> (same in every recording),

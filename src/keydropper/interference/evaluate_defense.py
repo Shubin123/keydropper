@@ -29,26 +29,67 @@ class DefenseReport:
     n_true_keys: int
     n_classes: int
     recovery_clean: float       # attacker accuracy with no defense
-    recovery_defended: float    # attacker accuracy under masking
+    recovery_defended: float    # naive attacker (clean-trained) under masking
     chance: float               # 1 / n_classes
     insertions_clean: int
     insertions_defended: int
+    # Phase 6: an attacker that KNOWS about the defense and trains on masked audio.
+    recovery_adaptive: float = float("nan")
+    insertions_adaptive: int = 0
 
     @property
     def leakage_reduction(self) -> float:
         """Absolute drop in attacker recovery accuracy caused by the defense."""
         return self.recovery_clean - self.recovery_defended
 
+    @property
+    def leakage_reduction_adaptive(self) -> float:
+        """Drop against the adaptive attacker specifically."""
+        return self.recovery_clean - self.recovery_adaptive
+
+    @property
+    def recovery_best_attacker(self) -> float:
+        """Recovery of the STRONGEST attacker we tested under the defense.
+
+        An adversary is free to pick whichever training strategy works better, so the
+        defense's real guarantee is the max over strategies — never the flattering one.
+        (Training on masked audio can actually hurt the attacker, because the decoys
+        corrupt its per-key prototypes; it would simply choose not to.)
+        """
+        ada = self.recovery_adaptive
+        if ada != ada:  # NaN -> adaptive not run
+            return self.recovery_defended
+        return max(self.recovery_defended, ada)
+
+    @property
+    def guaranteed_reduction(self) -> float:
+        """Leakage reduction against the strongest tested attacker."""
+        return self.recovery_clean - self.recovery_best_attacker
+
     def summary(self) -> str:
-        return (
+        lines = [
             f"true keys={self.n_true_keys}  classes={self.n_classes}  "
-            f"chance={self.chance:.3f}\n"
+            f"chance={self.chance:.3f}",
             f"attacker recovery  no-defense={self.recovery_clean:.3f}  "
             f"defended={self.recovery_defended:.3f}  "
-            f"(leakage reduction={self.leakage_reduction:+.3f})\n"
+            f"(leakage reduction={self.leakage_reduction:+.3f})",
+        ]
+        if self.recovery_adaptive == self.recovery_adaptive:  # not NaN
+            lines.append(
+                f"ADAPTIVE attacker (trained on masked audio)="
+                f"{self.recovery_adaptive:.3f}  "
+                f"(leakage reduction={self.leakage_reduction_adaptive:+.3f})"
+            )
+            lines.append(
+                f"=> strongest attacker under defense={self.recovery_best_attacker:.3f}  "
+                f"(guaranteed reduction={self.guaranteed_reduction:+.3f}, "
+                f"chance={self.chance:.3f})"
+            )
+        lines.append(
             f"decoy-driven insertions  no-defense={self.insertions_clean}  "
             f"defended={self.insertions_defended}"
         )
+        return "\n".join(lines)
 
 
 def keystroke_recovery(
@@ -109,6 +150,7 @@ def run_defense_benchmark(
     cfg: Config,
     per_key_train: int = 40,
     eval_len: int = 200,
+    adaptive: bool = True,
 ) -> DefenseReport:
     """End-to-end, dependency-free benchmark of the Tier-1 masking defense.
 
@@ -140,7 +182,28 @@ def run_defense_benchmark(
     defended = apply_masking(stream, truth, cfg.audio, cfg.model, bank, seed=cfg.seed + 3)
     rec_def, ins_def = keystroke_recovery(defended, truth, recognizer, cfg, n_frames)
 
+    # 5. Phase 6: the ADAPTIVE attacker. It knows the defense exists and collects its
+    #    training data with masking switched on, so it learns the masked distribution.
+    #    A defense that only beats the naive attacker is not a real defense.
+    rec_ada, ins_ada = float("nan"), 0
+    if adaptive:
+        def _mask_stream(s, ev, _seed=[cfg.seed + 500]):
+            _seed[0] += 1
+            return apply_masking(s, ev, cfg.audio, cfg.model, bank, seed=_seed[0])
+
+        ada_clips, ada_labels = build_training_set(
+            keys, per_key_train, cfg, seed=17, transform=_mask_stream
+        )
+        if ada_clips:
+            Xa = M.featurize_clips(ada_clips, cfg.audio, cfg.feature, n_frames)
+            adaptive_recognizer = M.KNNClassifier(k=3).fit(Xa, ada_labels)
+            rec_ada, ins_ada = keystroke_recovery(
+                defended, truth, adaptive_recognizer, cfg, n_frames
+            )
+
     return DefenseReport(
+        recovery_adaptive=rec_ada,
+        insertions_adaptive=ins_ada,
         n_true_keys=len(truth),
         n_classes=len(set(labels)),
         recovery_clean=rec_clean,

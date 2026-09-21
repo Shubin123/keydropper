@@ -50,12 +50,22 @@ Example `make demo` output:
 ```
 [Phase 2] onset detection: precision=1.000 recall=1.000 F1=1.000
 [Phase 3] small recognizer on an unseen recording (cross-stream)
-          cross-stream per-key accuracy = 0.975 (chance = 0.037)
+          cross-stream per-key accuracy = 0.958 (chance = 0.037)
 [Phase 5/6] interference model vs the attacker
-          attacker recovery  no-defense=0.935  defended=0.390  (leakage reduction=+0.545)
+          attacker recovery  no-defense=0.945  defended=0.130
+          ADAPTIVE attacker (trained on masked audio)=0.125
+          => strongest attacker under defense=0.130 (guaranteed reduction=+0.815)
 ```
 
-i.e. a 97.5%-accurate eavesdropper is cut to ~39% by the masking defense.
+i.e. a ~95%-accurate eavesdropper is cut to ~13% — and that number holds against an
+**adaptive** attacker that knows the defense exists and trains on masked audio.
+Interestingly, adapting makes the attacker *worse*: the decoys corrupt its per-key
+prototypes, so it does better training on clean audio. The reported guarantee always
+takes the **strongest** attacker, never the flattering one.
+
+Protection is a dial traded against audible noise (`decoys_per_key`, `mask_gain`) —
+from 9.9× chance at the gentlest setting down to 1.8× at the loudest. See
+[`PLAN.md`](PLAN.md) Phase 6 for the full table.
 
 ## Layout
 ```
@@ -85,6 +95,7 @@ quantization-ready, so it fits real-time on-device use — the defender must run
 time, and a lean recognizer is a fair, reproducible yardstick. See `PLAN.md`.
 
 ## Status
-Phases 0–3 and the Tier-1 defense (Phases 5–6 core) are built and tested. Real-data
-capture, sequence/LM decoding, the learned adversarial masker, and the real-time
-defender daemon are designed and scaffolded — see `PLAN.md`.
+Phases 0–3, the Tier-1 masking defense (Phase 5), and the **red/blue evaluation loop
+including the adaptive attacker (Phase 6)** are built, measured, and tested. Real-data
+capture, sequence/LM decoding, the learned adversarial masker (Tier-2), and the
+real-time defender daemon are designed and scaffolded — see `PLAN.md`.

@@ -23,7 +23,7 @@
       refractoryMs: 70, windowMs: 120, preOnsetMs: 10,
     },
     feature: { nFft: 256, hopMs: 4, winMs: 16, nMels: 24, fmin: 40, fmax: 8000, logFloor: 1e-10 },
-    model: { decoysPerKey: 2, maskGain: 0.9, timingJitterMs: 12 },
+    model: { decoysPerKey: 4, maskGain: 1.2, timingJitterMs: 12 },
     KEYBOARD_SEED: "20240517",
   };
 
@@ -424,7 +424,10 @@
     }
     return { clips: outClips, labels: outLabels };
   };
-  data.buildTrainingSet = function (keys, perKey, seed) {
+  // `transform(samples, events) -> samples` rewrites each stream before segmentation.
+  // That is how an ADAPTIVE attacker collects data: with the defense already running,
+  // so it learns the masked distribution rather than the clean one.
+  data.buildTrainingSet = function (keys, perKey, seed, transform) {
     const rng = new Rng(1234 + (seed || 0));
     const seq = [];
     for (const k of keys) for (let i = 0; i < perKey; i++) seq.push(k);
@@ -434,7 +437,8 @@
       const part = seq.slice(start, start + chunk);
       const text = part.map((k) => (k === "<space>" ? " " : k)).join("");
       const { samples, events } = synth.renderStream(text, 1234 + (seed || 0) + start, CFG.segment.windowMs);
-      const r = data.labelDetectedClips(samples, events);
+      const used = transform ? transform(samples, events, start) : samples;
+      const r = data.labelDetectedClips(used, events);
       for (let i = 0; i < r.clips.length; i++) { clips.push(r.clips[i]); labels.push(r.labels[i]); }
     }
     return { clips, labels };

@@ -140,20 +140,33 @@
       const evalStream = K.synth.renderStream(corpus, 7, windowMs);
       const clean = K.defense.keystrokeRecovery(evalStream.samples, evalStream.events, clf, nFrames);
 
-      setProg(88, "switching on the interference model…"); await tick();
+      setProg(80, "switching on the interference model…"); await tick();
       const bank = K.masker.decoyBank(keys, windowMs);
       const defended = K.masker.applyMasking(evalStream.samples, evalStream.events, bank, 3);
       const def = K.defense.keystrokeRecovery(defended, evalStream.events, clf, nFrames);
+
+      // Adaptive attacker: retrain on masked audio (it knows the defense exists).
+      // The defense's real guarantee is the strongest attacker, never the flattering one.
+      setProg(90, "retraining an adaptive attacker on masked audio…"); await tick();
+      const adaTrain = K.data.buildTrainingSet(keys, perKey, 17, (s, ev, off) =>
+        K.masker.applyMasking(s, ev, bank, 500 + off));
+      let adaRec = NaN;
+      if (adaTrain.clips.length) {
+        const adaClf = new K.models.KNN(3).fit(K.features.featurize(adaTrain.clips, nFrames), adaTrain.labels);
+        adaRec = K.defense.keystrokeRecovery(defended, evalStream.events, adaClf, nFrames).recovery;
+      }
+      const best = isNaN(adaRec) ? def.recovery : Math.max(def.recovery, adaRec);
 
       // metrics
       $("mF1").textContent = f1.toFixed(2);
       $("mAcc").textContent = (recogAcc * 100).toFixed(0) + "%";
       $("mClean").textContent = (clean.recovery * 100).toFixed(0) + "%";
-      $("mDef").textContent = (def.recovery * 100).toFixed(0) + "%";
-      $("mRed").textContent = "-" + ((clean.recovery - def.recovery) * 100).toFixed(0) + " pts";
+      $("mDef").textContent = (best * 100).toFixed(0) + "%";
+      $("mAda").textContent = isNaN(adaRec) ? "–" : (adaRec * 100).toFixed(0) + "%";
+      $("mRed").textContent = "-" + ((clean.recovery - best) * 100).toFixed(0) + " pts";
 
       // charts
-      drawBars(clean.recovery, def.recovery, chance);
+      drawBars(clean.recovery, best, chance);
       const demo = K.synth.renderStream(K.defense.randomCorpus(keys, 20, 99), 5, windowMs);
       drawWave(demo.samples, K.segment.detectOnsets(demo.samples), "waveChart");
       drawSpec(K.synth.keySignature(keys[0], windowMs, new K.Rng(1)), "specChart");

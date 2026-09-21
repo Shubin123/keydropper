@@ -60,12 +60,18 @@ def build_training_set(
     per_key: int,
     cfg: Config,
     seed: int = 0,
+    transform=None,
 ) -> Tuple[List[List[float]], List[str]]:
     """Build a segmentation-matched training set.
 
     Renders shuffled streams containing ``per_key`` presses of each key, segments them,
     and returns labeled clips. Because these clips pass through the onset detector, they
     match the distribution the recognizer sees on real streams.
+
+    ``transform(stream, truth_events) -> stream`` optionally rewrites each rendered
+    stream before segmentation. That is how an **adaptive attacker** collects training
+    data: with the countermeasure switched on, so it learns the masked distribution
+    rather than the clean one. Phase 6 of the plan requires the defense to survive it.
     """
     rng = random.Random(cfg.seed + seed)
     sequence: List[str] = []
@@ -84,6 +90,8 @@ def build_training_set(
         stream, truth = synth.render_stream(
             text, cfg.audio, seed=cfg.seed + seed + start, window_ms=cfg.segment.window_ms
         )
+        if transform is not None:
+            stream = transform(stream, truth)
         c, y = label_detected_clips(stream, truth, cfg)
         clips.extend(c)
         labels.extend(y)

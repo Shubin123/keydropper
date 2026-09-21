@@ -45,5 +45,34 @@ class TestDefenseSuppressesAttacker(unittest.TestCase):
         self.assertGreaterEqual(report.leakage_reduction, 0.0)
 
 
+class TestAdaptiveAttacker(unittest.TestCase):
+    """Phase 6: the defense must hold against an attacker that knows about it.
+
+    A countermeasure that only works because the adversary is unaware of it is not a
+    defense. Here the adaptive attacker collects its training data with masking already
+    switched on, so it learns the masked distribution instead of the clean one.
+    """
+
+    def setUp(self):
+        self.cfg = fast_config()
+        self.keys = FAST_KEYS
+
+    def test_defense_holds_against_adaptive_attacker(self):
+        r = run_defense_benchmark(self.keys, "x", self.cfg, per_key_train=25,
+                                  eval_len=120, adaptive=True)
+        self.assertEqual(r.recovery_adaptive, r.recovery_adaptive, "adaptive not run (NaN)")
+        # The guarantee is taken over the STRONGEST attacker, never the flattering one.
+        self.assertGreaterEqual(r.recovery_best_attacker, r.recovery_defended)
+        self.assertLess(r.recovery_best_attacker, r.recovery_clean - 0.15,
+                        f"defense fails against the strongest attacker: {r.summary()}")
+
+    def test_adaptive_can_be_disabled(self):
+        r = run_defense_benchmark(self.keys, "x", self.cfg, per_key_train=25,
+                                  eval_len=120, adaptive=False)
+        self.assertNotEqual(r.recovery_adaptive, r.recovery_adaptive)  # NaN
+        # With adaptive off, the guarantee falls back to the naive attacker.
+        self.assertEqual(r.recovery_best_attacker, r.recovery_defended)
+
+
 if __name__ == "__main__":
     unittest.main()

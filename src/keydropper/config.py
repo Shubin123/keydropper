@@ -61,8 +61,13 @@ class ModelConfig:
     width: int = 32                  # base channel width for the CNN
     dropout: float = 0.1
     # --- interference / defense ---
-    decoys_per_key: int = 2          # masking bursts emitted per real keystroke
-    mask_gain: float = 0.9           # loudness of masking relative to a real keystroke
+    # Protection is a monotonic trade-off against audible noise. Measured against the
+    # strongest attacker we test (see PLAN.md Phase 6), starting from 93% recovery:
+    #   decoys=2 gain=0.9 -> 37% (9.9x chance)    decoys=4 gain=1.2 -> 13% (3.4x)
+    #   decoys=4 gain=1.5 -> 11% (3.1x)           decoys=6 gain=1.5 ->  7% (1.8x)
+    # The default is the balanced setting; raise both for stronger protection.
+    decoys_per_key: int = 4          # masking bursts emitted per real keystroke
+    mask_gain: float = 1.2           # loudness of masking relative to a real keystroke
     timing_jitter_ms: float = 12.0   # decoy timing jitter to defeat alignment attacks
 
 
