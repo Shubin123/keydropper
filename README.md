@@ -8,6 +8,21 @@ toward random guessing.
 
 > Defensive use only, on your own hardware. See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
+## Web app (runs in your browser)
+The whole pipeline is also ported to a **self-contained, dependency-free web app** in
+[`web/`](web/) — open `web/index.html` directly, or serve it over GitHub Pages.
+
+- **Synthetic lab** — build an eavesdropper, watch it read a keystroke stream, then flip
+  on the interference model and watch its accuracy collapse toward chance. Works
+  anywhere, even from `file://`.
+- **Live capture** — grant mic access, type to teach it your own keyboard, then let it
+  read you; toggle masking to defend in real time. Needs HTTPS (Pages) or localhost.
+
+**Deploy to GitHub Pages:** in the repo, go to **Settings → Pages → Build and
+deployment → Source: GitHub Actions**. The workflow in
+[`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) then publishes
+`web/` on every push, at `https://<user>.github.io/keysoundmap/`.
+
 ## Two models, one repo
 1. **Recognizer** (the threat yardstick) — a small, efficient, on-device keystroke
    classifier. Used to *measure* leakage and to give the defense a concrete adversary.

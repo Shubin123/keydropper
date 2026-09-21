@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>keysoundmap — acoustic keystroke defense lab</title>
+  <meta name="description" content="Blue-team lab: measure how much a keyboard leaks through its sound, and run an active interference countermeasure that defeats the eavesdropper. Runs entirely in your browser." />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">⌨︎<span class="wave">〜</span></span>
+        <div>
+          <h1>keysoundmap</h1>
+          <p class="tagline">Keyboards make noise. That noise can be mapped to keystrokes — so let's stop it.</p>
+        </div>
+      </div>
+      <span class="badge">blue team · runs 100% in your browser</span>
+    </div>
+  </header>
+
+  <nav class="tabs wrap" role="tablist">
+    <button class="tab active" data-tab="lab" role="tab">Synthetic lab</button>
+    <button class="tab" data-tab="live" role="tab">Live capture</button>
+    <button class="tab" data-tab="about" role="tab">How it works</button>
+  </nav>
+
+  <main class="wrap">
+    <!-- ------------------------------------------------ SYNTHETIC LAB -->
+    <section id="lab" class="panel active" role="tabpanel">
+      <p class="lead">
+        A synthetic keyboard lets us run the full attack &rarr; defense loop with known
+        ground truth. Build an eavesdropper, watch it read a stream of keystrokes, then
+        switch on the <strong>interference model</strong> and watch its accuracy collapse
+        toward random guessing.
+      </p>
+
+      <div class="controls card">
+        <div class="ctrl">
+          <label for="keyset">Keyboard</label>
+          <select id="keyset">
+            <option value="11">11 keys (fast)</option>
+            <option value="27" selected>26 letters + space</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label for="perkey">Training presses / key <span id="perkeyVal" class="val">30</span></label>
+          <input id="perkey" type="range" min="10" max="60" value="30" step="5" />
+        </div>
+        <div class="ctrl">
+          <label for="evallen">Eval keystrokes <span id="evallenVal" class="val">150</span></label>
+          <input id="evallen" type="range" min="60" max="300" value="150" step="30" />
+        </div>
+        <div class="ctrl">
+          <label for="maskgain">Masking loudness <span id="maskgainVal" class="val">0.9</span></label>
+          <input id="maskgain" type="range" min="0" max="2" value="0.9" step="0.1" />
+        </div>
+        <div class="ctrl">
+          <label for="decoys">Decoys / keystroke <span id="decoysVal" class="val">2</span></label>
+          <input id="decoys" type="range" min="0" max="5" value="2" step="1" />
+        </div>
+        <button id="runBtn" class="primary">Run attack &amp; defense</button>
+      </div>
+
+      <div id="progress" class="progress hidden"><div class="bar"></div><span class="msg"></span></div>
+
+      <div class="metrics">
+        <div class="metric"><div class="mval" id="mF1">–</div><div class="mlabel">onset detection F1</div></div>
+        <div class="metric"><div class="mval" id="mAcc">–</div><div class="mlabel">recognizer accuracy<br/>(unseen recording)</div></div>
+        <div class="metric danger"><div class="mval" id="mClean">–</div><div class="mlabel">attacker recovery<br/><em>no defense</em></div></div>
+        <div class="metric good"><div class="mval" id="mDef">–</div><div class="mlabel">attacker recovery<br/><em>with masking</em></div></div>
+        <div class="metric"><div class="mval" id="mRed">–</div><div class="mlabel">leakage reduction</div></div>
+      </div>
+
+      <div class="viz-grid">
+        <div class="card">
+          <h3>Attacker recovery vs. chance</h3>
+          <canvas id="barChart" width="600" height="240"></canvas>
+          <p class="cap">Lower is safer. The dashed line is random-guess accuracy (1 / #keys).</p>
+        </div>
+        <div class="card">
+          <h3>A typed stream & detected onsets</h3>
+          <canvas id="waveChart" width="600" height="180"></canvas>
+          <p class="cap">Green ticks = detected keystroke onsets on a rendered stream.</p>
+        </div>
+        <div class="card">
+          <h3>Log-mel of one keystroke</h3>
+          <canvas id="specChart" width="600" height="200"></canvas>
+          <p class="cap">The spectral signature the recognizer learns per key.</p>
+        </div>
+        <div class="card">
+          <h3>Clean vs. masked keystroke</h3>
+          <canvas id="maskChart" width="600" height="200"></canvas>
+          <p class="cap">Masking overlays decoy keystroke sounds, corrupting the signal.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------ LIVE CAPTURE -->
+    <section id="live" class="panel" role="tabpanel">
+      <p class="lead">
+        Measure <strong>your own</strong> keyboard. Grant microphone access, type into the
+        box to teach a recognizer the sound of each key, then let it try to read what you
+        type. Turn on <strong>masking</strong> and it gets much harder — that's the defense
+        running locally, on your machine.
+      </p>
+      <p class="note" id="secnote"></p>
+
+      <div class="controls card">
+        <button id="micBtn" class="primary">Enable microphone</button>
+        <span id="micStatus" class="status">microphone off</span>
+        <label class="switch"><input type="checkbox" id="maskToggle" /> <span>play masking on every keypress</span></label>
+      </div>
+
+      <div class="live-grid">
+        <div class="card">
+          <h3>1 · Teach it your keyboard</h3>
+          <p class="cap">Focus the box and type naturally. Each keystroke's sound is captured and labeled.</p>
+          <input id="trainBox" class="typebox" placeholder="type here to collect samples…" autocomplete="off" />
+          <div class="row">
+            <span id="sampleCount" class="status">0 samples</span>
+            <button id="trainBtn" disabled>Train recognizer</button>
+            <button id="clearBtn" class="ghost">Clear</button>
+          </div>
+          <canvas id="liveSpec" width="560" height="120"></canvas>
+        </div>
+        <div class="card">
+          <h3>2 · Watch it read you</h3>
+          <p class="cap">After training, type here. The recognizer guesses each key from sound alone.</p>
+          <input id="testBox" class="typebox" placeholder="train first, then type here…" autocomplete="off" disabled />
+          <div class="predline"><span class="cap">predicted:</span> <span id="predStream" class="predstream"></span></div>
+          <div class="metrics small">
+            <div class="metric danger"><div class="mval" id="liveAcc">–</div><div class="mlabel">read accuracy</div></div>
+            <div class="metric"><div class="mval" id="liveN">0</div><div class="mlabel">keys tested</div></div>
+          </div>
+          <p class="cap" id="liveHint">Tip: turn masking on and watch the read accuracy drop.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------ ABOUT -->
+    <section id="about" class="panel" role="tabpanel">
+      <div class="card prose">
+        <h2>What this is</h2>
+        <p>
+          A microphone near a keyboard hears every keystroke, and each key sounds a little
+          different. A machine-learning model can turn that sound back into text — including
+          passwords. Recent research reports over 90% accuracy, even over a laptop mic or a
+          video call.
+        </p>
+        <p>
+          <strong>keysoundmap is a blue-team tool.</strong> It builds a small, honest
+          recognizer only to <em>measure</em> that leak, and then builds and proves an
+          <strong>interference model</strong> — an active countermeasure that emits decoy
+          keystroke sounds from your own device so the eavesdropper can no longer tell which
+          key you pressed.
+        </p>
+        <h2>The pipeline (all client-side)</h2>
+        <ol>
+          <li><strong>Segment</strong> the audio into per-keystroke windows (energy onsets).</li>
+          <li><strong>Featurize</strong> each window as a log-mel spectrogram, aligned to its transient peak.</li>
+          <li><strong>Recognize</strong> the key with a compact, efficient classifier.</li>
+          <li><strong>Interfere</strong>: overlay spectrally-matched decoy keystrokes to mask the real ones.</li>
+          <li><strong>Evaluate</strong>: recovery accuracy with vs. without the defense.</li>
+        </ol>
+        <h2>Two things that make recognition work</h2>
+        <p>
+          The keyboard's per-key sound is a <em>fixed identity</em> (same in every recording),
+          and features are aligned to the keystroke's transient — otherwise a model trained on
+          one recording can't read another. The defense is measured against a fair recognizer
+          trained on clean audio.
+        </p>
+        <p class="cap">
+          Everything here runs in your browser with no external services. The microphone mode
+          works over HTTPS (this page on GitHub Pages) or on localhost; the synthetic lab works
+          anywhere, even opened directly from disk.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer wrap">
+    <span>keysoundmap · defensive security research · no data leaves your browser</span>
+  </footer>
+
+  <script src="./js/ksm.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
