@@ -58,11 +58,16 @@ def test_app_bindings_resolve_to_page_controls():
 
 
 def test_wav_results_are_rendered_in_timestamped_sequence_order():
+    html = (WEB / "index.html").read_text()
     source = (WEB / "js/app.js").read_text()
+    assert 'id="audioTimeline"' in html
+    assert 'id="sampleAudio"' in html
     assert 'formatTimestamp(onsets[item.predIndex])' in source
     assert 'time.dateTime = `PT${sec.toFixed(3)}S`' in source
     assert 'result.textContent = expected === null' in source
     assert 'file.arrayBuffer()' in source
+    assert 'renderAudioTimeline(samples, detected.onsets, summary.items)' in source
+    assert 'timelineAudio.currentTime = fraction * timelineState.duration' in source
 
 
 def test_page_explains_scope_and_local_audio_handling():

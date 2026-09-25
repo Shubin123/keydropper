@@ -113,12 +113,19 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
 .sample-card { margin: 16px 0; }
 .sample-card audio { display: block; width: min(100%, 560px); margin: 12px 0; }
+.timeline-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 12px 0 4px; }
+.timeline-heading h4 { margin: 0; font-size: 14px; }
+.timeline-viewport { overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 9px; background: #0a1024; }
+.timeline-viewport canvas { border: 0; border-radius: 0; background: transparent; display: block; cursor: crosshair; }
+.timeline-viewport canvas:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -3px; }
+.sequence-details { margin-top: 12px; }
+.sequence-details summary { color: var(--accent-2); font-size: 13px; cursor: pointer; }
 .sample-card a { color: var(--accent-2); font-size: 13px; }
 .sample-result { color: var(--text); font-family: ui-monospace, "SF Mono", Menlo, monospace; margin: 12px 0 0; }
 .upload-controls { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr); gap: 8px 14px; align-items: center; max-width: 720px; margin: 14px 0; }
 .upload-controls > label { color: var(--muted); font-size: 13px; }
 .upload-controls input[type="file"] { color: var(--muted); font-size: 13px; }
-.sequence-list { margin-top: 14px; overflow-x: auto; }
+.sequence-list { margin-top: 10px; overflow-x: auto; }
 .sequence-list table { border-collapse: collapse; min-width: 500px; width: 100%; font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
 .sequence-list th, .sequence-list td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
 .sequence-list th { color: var(--muted); font: 11px/1.4 ui-monospace, "SF Mono", Menlo, monospace; text-transform: uppercase; letter-spacing: .04em; }

@@ -22,8 +22,9 @@ The whole pipeline is also ported to a **self-contained, dependency-free web app
   physical keyboard recording. Regenerate/check it with `node scripts/generate_example_wav.js`
   and `node scripts/check_example_wav.js`.
 - **Local WAV analysis** — select a mono 16 kHz PCM16 WAV file for in-browser analysis.
-  Each predicted key is listed in sequence with its audio timestamp. Supply expected text
-  to show ordered label matches; without it, results are shown as unlabeled predictions.
+  The waveform and timestamped expected/predicted key markers share one seekable timeline;
+  the playhead follows playback. Supply expected text to show ordered label matches;
+  without it, results are shown as unlabeled predictions.
 
 **Public demo:** [shubin123.github.io/keydropper](https://shubin123.github.io/keydropper/).
 GitHub Pages publishes `web/` through GitHub Actions. Updates to `web/` deploy

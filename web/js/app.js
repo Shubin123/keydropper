@@ -228,8 +228,10 @@
     if (format.codec !== 1 || format.channels !== 1 || format.bits !== 16 || format.sampleRate !== K.CFG.audio.sr || dataLength % 2) {
       throw new Error("The example WAV format is unsupported (expected 16 kHz mono PCM16).");
     }
+    if (!dataLength) throw new Error("The WAV contains no audio samples.");
     const samples = new Float64Array(dataLength / 2);
     for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(dataOffset + i * 2, true) / 32768;
+    if (samples.length / format.sampleRate > 60) throw new Error("WAV uploads must be 60 seconds or shorter.");
     return samples;
   }
 
@@ -241,6 +243,140 @@
     const minutes = Math.floor(seconds / 60);
     return `${String(minutes).padStart(2, "0")}:${(seconds % 60).toFixed(3).padStart(6, "0")}`;
   }
+
+  const timelineState = { samples: null, onsets: [], aligned: [], duration: 0, width: 0, height: 0, ratio: 1, base: null };
+  const timelineAudio = $("sampleAudio");
+  let currentAudioUrl = null;
+
+  function paintPlayhead() {
+    const canvas = $("audioTimeline"), state = timelineState;
+    if (!state.base) return;
+    const ctx = canvas.getContext("2d"), ratio = state.ratio;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, state.width, state.height);
+    ctx.drawImage(state.base, 0, 0, state.width, state.height);
+    const now = Math.max(0, Math.min(state.duration, timelineAudio.currentTime || 0));
+    const x = state.duration ? (now / state.duration) * state.width : 0;
+    const waveTop = state.waveTop;
+    ctx.strokeStyle = "#ffc857"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x, state.height - 22); ctx.stroke();
+    ctx.fillStyle = "#ffc857"; ctx.beginPath(); ctx.arc(x, waveTop - 7, 4, 0, Math.PI * 2); ctx.fill();
+    $("playheadTime").textContent = formatTimestamp(now * K.CFG.audio.sr);
+  }
+
+  function renderAudioTimeline(samples, onsets, aligned) {
+    const state = timelineState, canvas = $("audioTimeline");
+    const sr = K.CFG.audio.sr;
+    state.samples = samples; state.onsets = onsets; state.aligned = aligned;
+    state.duration = samples.length / sr;
+    state.width = Math.max(720, Math.min(6000, Math.ceil(state.duration * 150)));
+    state.ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const cardW = 146, cardH = 22, laneGap = 5;
+    const predictedRows = aligned.filter((item) => item.predIndex !== null);
+    const laneEnds = [];
+    const placements = predictedRows.map((item) => {
+      const x = (onsets[item.predIndex] / sr) * state.width;
+      const left = Math.max(2, Math.min(state.width - cardW - 2, x - cardW / 2));
+      let lane = laneEnds.findIndex((end) => left > end + 5);
+      if (lane < 0) lane = laneEnds.length;
+      laneEnds[lane] = left + cardW;
+      return { item, x, left, lane };
+    });
+    const laneCount = Math.max(1, laneEnds.length);
+    state.waveTop = 18 + laneCount * (cardH + laneGap) + 5;
+    state.height = state.waveTop + 70;
+    canvas.style.width = `${state.width}px`;
+    canvas.style.minWidth = `${state.width}px`;
+    canvas.style.height = `${state.height}px`;
+    canvas.width = Math.ceil(state.width * state.ratio);
+    canvas.height = Math.ceil(state.height * state.ratio);
+    const base = document.createElement("canvas");
+    base.width = canvas.width; base.height = canvas.height;
+    const g = base.getContext("2d");
+    g.setTransform(state.ratio, 0, 0, state.ratio, 0, 0);
+    g.clearRect(0, 0, state.width, state.height);
+
+    // Render the audio envelope and a time ruler on the same horizontal scale as labels.
+    const mid = state.waveTop + 28, half = 24;
+    g.strokeStyle = "#263258"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, mid); g.lineTo(state.width, mid); g.stroke();
+    const peak = samples.reduce((v, s) => Math.max(v, Math.abs(s)), 1e-6);
+    const bins = Math.max(1, Math.floor(state.width));
+    g.strokeStyle = "#38d6c8"; g.globalAlpha = 0.86; g.beginPath();
+    for (let px = 0; px < bins; px++) {
+      const start = Math.floor((px / bins) * samples.length);
+      const end = Math.max(start + 1, Math.floor(((px + 1) / bins) * samples.length));
+      let lo = 0, hi = 0;
+      for (let i = start; i < end && i < samples.length; i++) { lo = Math.min(lo, samples[i] / peak); hi = Math.max(hi, samples[i] / peak); }
+      g.moveTo(px + 0.5, mid - hi * half); g.lineTo(px + 0.5, mid - lo * half);
+    }
+    g.stroke(); g.globalAlpha = 1;
+
+    // Position each key label at its detected onset; lanes only prevent text overlap.
+    const keyLabel = (key) => key === null ? "—" : key === "<space>" || key === " " ? "␣" : key;
+    for (const place of placements) {
+      const { item, x, left, lane } = place;
+      const y = 9 + lane * (cardH + laneGap);
+      const matched = item.expected !== null && item.expected === (item.predicted === "<space>" ? " " : item.predicted);
+      const color = item.expected === null ? "#4f8cff" : matched ? "#37d67a" : "#ff6b6b";
+      const label = item.expected === null
+        ? `${formatTimestamp(onsets[item.predIndex])}  ${keyLabel(item.predicted)}`
+        : `${formatTimestamp(onsets[item.predIndex])}  ${keyLabel(item.expected)} → ${keyLabel(item.predicted)}`;
+      g.strokeStyle = color; g.fillStyle = "rgba(18,26,48,.96)"; g.lineWidth = 1;
+      g.beginPath(); g.roundRect(left, y, cardW, cardH, 5); g.fill(); g.stroke();
+      g.fillStyle = color; g.font = "11px ui-monospace, monospace"; g.textAlign = "center";
+      g.fillText(label, left + cardW / 2, y + 15, cardW - 8);
+      g.beginPath(); g.moveTo(x, y + cardH); g.lineTo(x, state.waveTop); g.stroke();
+      g.beginPath(); g.arc(x, state.waveTop, 3, 0, Math.PI * 2); g.fill();
+    }
+
+    const tickStep = Math.max(0.5, Math.ceil(state.duration / 8 * 2) / 2);
+    const rulerY = state.height - 21;
+    g.strokeStyle = "#526083"; g.fillStyle = "#9aa7c7"; g.textAlign = "center";
+    g.font = "11px ui-monospace, monospace"; g.beginPath(); g.moveTo(0, rulerY); g.lineTo(state.width, rulerY); g.stroke();
+    for (let sec = 0; sec <= state.duration; sec += tickStep) {
+      const x = (sec / state.duration) * state.width;
+      g.beginPath(); g.moveTo(x, rulerY - 4); g.lineTo(x, rulerY + 4); g.stroke();
+      g.fillText(`${sec.toFixed(sec % 1 ? 1 : 0)}s`, x, state.height - 5);
+    }
+    state.base = base;
+    canvas.setAttribute("aria-label", `Waveform timeline, ${predictedRows.length} timestamped key detections over ${state.duration.toFixed(2)} seconds. Click or use arrow keys to seek.`);
+    paintPlayhead();
+  }
+
+  ["timeupdate", "seeked", "loadedmetadata", "play", "pause", "ended"].forEach((eventName) => {
+    timelineAudio.addEventListener(eventName, paintPlayhead);
+  });
+  let playheadFrame = 0;
+  timelineAudio.addEventListener("play", () => {
+    if (playheadFrame) return;
+    const animate = () => {
+      paintPlayhead();
+      playheadFrame = timelineAudio.paused ? 0 : requestAnimationFrame(animate);
+    };
+    playheadFrame = requestAnimationFrame(animate);
+  });
+  timelineAudio.addEventListener("pause", () => {
+    if (playheadFrame) cancelAnimationFrame(playheadFrame);
+    playheadFrame = 0;
+  });
+  $("audioTimeline").addEventListener("click", (event) => {
+    if (!timelineState.duration) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const fraction = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    timelineAudio.currentTime = fraction * timelineState.duration;
+    paintPlayhead();
+  });
+  $("audioTimeline").addEventListener("keydown", (event) => {
+    if (!timelineState.duration) return;
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight" || event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      if (event.key === "Home") timelineAudio.currentTime = 0;
+      else if (event.key === "End") timelineAudio.currentTime = timelineState.duration;
+      else timelineAudio.currentTime = Math.max(0, Math.min(timelineState.duration, timelineAudio.currentTime + (event.key === "ArrowRight" ? 0.25 : -0.25)));
+      paintPlayhead();
+    }
+  });
 
   function alignKeySequences(expected, predicted) {
     if (expected === null) return predicted.map((key, index) => ({ expected: null, predicted: key, predIndex: index }));
@@ -304,7 +440,7 @@
       tr.appendChild(result); body.appendChild(tr);
     });
     table.appendChild(body); root.appendChild(table);
-    return { aligned: aligned.length, matches };
+    return { aligned: aligned.length, matches, items: aligned };
   }
 
   async function analyzeWav(buffer, expectedText, sourceLabel) {
@@ -324,6 +460,11 @@
     const predicted = sampleRecognizer.predict(K.features.featurize(detected.clips, sampleFrames));
     const expected = expectedText === null ? null : Array.from(expectedText.toLowerCase());
     const summary = renderKeySequence(predicted, detected.onsets, expected);
+    if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+    currentAudioUrl = URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+    timelineAudio.src = currentAudioUrl;
+    timelineAudio.load();
+    renderAudioTimeline(samples, detected.onsets, summary.items);
     result.textContent = expected === null
       ? `${sourceLabel}: predicted ${predicted.length} keys in timestamp order. Add expected text to see label matches.`
       : `${sourceLabel}: ${summary.matches}/${summary.aligned} ordered labels matched · ${predicted.length} keys predicted.`;
