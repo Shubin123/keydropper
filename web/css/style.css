@@ -111,6 +111,10 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
 }
 .typebox:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,140,255,.2); }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.sample-card { margin: 16px 0; }
+.sample-card audio { display: block; width: min(100%, 560px); margin: 12px 0; }
+.sample-card a { color: var(--accent-2); font-size: 13px; }
+.sample-result { color: var(--text); font-family: ui-monospace, "SF Mono", Menlo, monospace; margin: 12px 0 0; }
 .status { color: var(--muted); font-size: 13px; }
 .switch { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13.5px; cursor: pointer; }
 .predline { margin: 10px 0; }

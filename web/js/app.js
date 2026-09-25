@@ -203,6 +203,64 @@
   }
   $("runBtn").addEventListener("click", runBenchmark);
 
+  // -------------------------------------------------------- labeled WAV example ----
+  function decodeExampleWav(buffer) {
+    const view = new DataView(buffer);
+    const text = (offset, length) => String.fromCharCode(...new Uint8Array(buffer, offset, length));
+    if (buffer.byteLength < 44 || text(0, 4) !== "RIFF" || text(8, 4) !== "WAVE") {
+      throw new Error("The example file is not a valid RIFF/WAVE file.");
+    }
+    let format = null, dataOffset = -1, dataLength = 0;
+    for (let offset = 12; offset + 8 <= buffer.byteLength;) {
+      const id = text(offset, 4), size = view.getUint32(offset + 4, true);
+      const start = offset + 8;
+      if (start + size > buffer.byteLength) throw new Error("The example WAV is truncated.");
+      if (id === "fmt ") {
+        if (size < 16) throw new Error("The example WAV format chunk is incomplete.");
+        format = {
+          codec: view.getUint16(start, true), channels: view.getUint16(start + 2, true),
+          sampleRate: view.getUint32(start + 4, true), bits: view.getUint16(start + 14, true),
+        };
+      } else if (id === "data") { dataOffset = start; dataLength = size; }
+      offset = start + size + (size % 2);
+    }
+    if (!format || dataOffset < 0) throw new Error("The example WAV is missing audio data.");
+    if (format.codec !== 1 || format.channels !== 1 || format.bits !== 16 || format.sampleRate !== K.CFG.audio.sr || dataLength % 2) {
+      throw new Error("The example WAV format is unsupported (expected 16 kHz mono PCM16).");
+    }
+    const samples = new Float64Array(dataLength / 2);
+    for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(dataOffset + i * 2, true) / 32768;
+    return samples;
+  }
+
+  $("analyzeSampleBtn").addEventListener("click", async () => {
+    const button = $("analyzeSampleBtn"), status = $("sampleStatus"), result = $("sampleResult");
+    button.disabled = true; status.textContent = "Loading local WAV…";
+    try {
+      await tick();
+      const response = await fetch("./audio/synthetic-demo.wav");
+      if (!response.ok) throw new Error(`Could not load the WAV (HTTP ${response.status}).`);
+      const samples = decodeExampleWav(await response.arrayBuffer());
+      status.textContent = "Training the local recognizer…";
+      await tick();
+      const nFrames = K.features.inferNFrames(K.CFG.segment.windowMs);
+      const train = K.data.buildTrainingSet(K.DEFAULT_KEYS, 12, 212);
+      const clf = new K.models.KNN(3).fit(K.features.featurize(train.clips, nFrames), train.labels);
+      const detected = K.segment.segment(samples);
+      if (!detected.clips.length) throw new Error("No keyboard onsets were detected in the sample.");
+      const predicted = clf.predict(K.features.featurize(detected.clips, nFrames));
+      const expected = "demo".split("");
+      const aligned = Math.min(predicted.length, expected.length);
+      let correct = 0;
+      for (let i = 0; i < aligned; i++) if (predicted[i] === expected[i]) correct++;
+      result.textContent = `Predicted: ${predicted.join("")} · detected ${predicted.length}/${expected.length} onsets · ${correct}/${aligned} known labels matched`;
+      status.textContent = "Analyzed locally · no upload";
+    } catch (error) {
+      status.textContent = "Could not analyze sample";
+      result.textContent = error.message;
+    } finally { button.disabled = false; }
+  });
+
   // ------------------------------------------------------------- live capture ----
   const live = {
     ctx: null, ring: null, R: 0, writePos: 0, total: 0, node: null, stream: null,

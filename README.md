@@ -17,6 +17,10 @@ The whole pipeline is also ported to a **self-contained, dependency-free web app
   keyboards. Works anywhere, even from `file://`.
 - **Live capture** — grant mic access, type to teach it your own keyboard, then let it
   read you; toggle masking to defend in real time. Needs HTTPS (Pages) or localhost.
+- **Labeled WAV example** — play or download a short generated `demo` clip, then run it
+  through the same browser recognizer used by the lab. It is toy synthesized audio, not a
+  physical keyboard recording. Regenerate/check it with `node scripts/generate_example_wav.js`
+  and `node scripts/check_example_wav.js`.
 
 **Public demo:** [shubin123.github.io/keydropper](https://shubin123.github.io/keydropper/).
 GitHub Pages publishes `web/` through GitHub Actions. Updates to `web/` deploy

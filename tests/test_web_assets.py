@@ -2,6 +2,8 @@
 from html.parser import HTMLParser
 from pathlib import Path
 import re
+import shutil
+import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,3 +61,20 @@ def test_page_explains_scope_and_local_audio_handling():
     assert "not a keytap3 port" in html
     assert "no analytics or upload endpoint" in html
     assert "synthetic keyboard model" in html
+
+
+def test_example_audio_is_a_small_pcm_wav():
+    wav = (WEB / "audio/synthetic-demo.wav").read_bytes()
+    assert wav[:4] == b"RIFF" and wav[8:12] == b"WAVE"
+    assert int.from_bytes(wav[22:24], "little") == 1  # mono
+    assert int.from_bytes(wav[24:28], "little") == 16000
+    assert int.from_bytes(wav[34:36], "little") == 16
+    assert len(wav) < 100_000
+
+
+def test_example_wav_recognizes_end_to_end_when_node_is_available():
+    node = shutil.which("node")
+    if not node:
+        import pytest
+        pytest.skip("Node.js is needed to exercise the browser recognizer")
+    subprocess.run([node, str(ROOT / "scripts/check_example_wav.js")], check=True, cwd=ROOT)
