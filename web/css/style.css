@@ -53,6 +53,8 @@ h1 { margin: 0; font-size: 26px; letter-spacing: .3px; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .lead { color: var(--muted); font-size: 15.5px; max-width: 780px; }
 .note { color: var(--accent-2); font-size: 13px; min-height: 1em; }
+.privacy-note { color: var(--muted); border-left: 3px solid var(--accent-2); padding: 10px 14px; margin: 12px 0 22px; background: rgba(56,214,200,.06); border-radius: 0 8px 8px 0; font-size: 13px; }
+.privacy-note strong { color: var(--text); }
 
 /* cards */
 .card {
@@ -82,6 +84,7 @@ button {
 }
 button:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
 button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
 button.primary { background: linear-gradient(90deg, var(--accent), #6aa1ff); border-color: transparent; color: #061024; font-weight: 700; }
 button.ghost { background: transparent; }
 
@@ -110,6 +113,53 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
 }
 .typebox:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,140,255,.2); }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.audio-workbench { margin: 26px 0; }
+.workbench-heading, .review-heading { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.workbench-heading h2, .review-heading h3 { margin: 0; font-size: 18px; }
+.keyboard-picker { display: grid; grid-template-columns: auto minmax(190px, 260px) minmax(220px, 1fr); gap: 12px; align-items: center; margin-bottom: 12px; }
+.keyboard-picker label { color: var(--text); font-size: 13px; font-weight: 650; }
+.keyboard-picker .cap { margin: 0; }
+.audio-module-stack { display: grid; gap: 10px; }
+.audio-module { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 12px; padding: 14px 16px; background: linear-gradient(180deg, var(--card), var(--bg-soft)); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); transition: border-color .15s, opacity .15s, transform .15s; }
+.audio-module:hover { border-color: #40517d; }
+.audio-module.is-dragging { opacity: .48; transform: scale(.99); border-color: var(--accent-2); }
+.module-grab { grid-column: 1; grid-row: 1 / span 3; align-self: start; cursor: grab; touch-action: none; font-size: 20px; padding: 9px; min-width: 40px; }
+.module-grab:active { cursor: grabbing; }
+.module-header { grid-column: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.module-title h3 { margin: 1px 0 0; font-size: 15px; }
+.module-kicker { color: var(--accent-2); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+.module-actions { display: flex; gap: 6px; }
+.module-actions button { padding: 5px 10px; min-width: 36px; }
+.audio-module > .cap, .audio-module > audio, .module-footer, .upload-controls { grid-column: 2; }
+.audio-module > .cap { margin: 4px 0 8px; }
+.audio-module audio, .review-card audio { display: block; width: min(100%, 620px); margin: 7px 0; }
+.module-footer { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 5px; }
+.module-footer a { color: var(--accent-2); font-size: 13px; }
+.review-card { margin-top: 14px; }
+.review-heading { margin-bottom: 8px; }
+.review-heading .status { margin-left: auto; }
+.review-heading h3 { font-size: 16px; }
+.upload-controls { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(220px, 2fr); gap: 8px 14px; align-items: center; margin: 8px 0 3px; }
+.upload-controls > label { color: var(--muted); font-size: 13px; }
+.upload-controls input[type="file"] { color: var(--muted); font-size: 13px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.timeline-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 12px 0 4px; }
+.timeline-heading h4 { margin: 0; font-size: 14px; }
+.timeline-viewport { overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 9px; background: #0a1024; }
+.timeline-viewport canvas { border: 0; border-radius: 0; background: transparent; display: block; cursor: crosshair; }
+.timeline-viewport canvas:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -3px; }
+.sequence-details { margin-top: 12px; }
+.sequence-details summary { color: var(--accent-2); font-size: 13px; cursor: pointer; }
+.download-current { display: inline-block; color: var(--accent-2); font-size: 13px; margin: 2px 0 8px; }
+.sample-result { color: var(--text); font-family: ui-monospace, "SF Mono", Menlo, monospace; margin: 12px 0 0; }
+.sequence-list { margin-top: 10px; overflow-x: auto; }
+.sequence-list table { border-collapse: collapse; min-width: 500px; width: 100%; font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
+.sequence-list th, .sequence-list td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.sequence-list th { color: var(--muted); font: 11px/1.4 ui-monospace, "SF Mono", Menlo, monospace; text-transform: uppercase; letter-spacing: .04em; }
+.sequence-list time, .sequence-index { color: var(--muted); }
+.sequence-match { color: var(--good); }
+.sequence-mismatch { color: var(--danger); }
+.sequence-unknown { color: var(--muted); }
 .status { color: var(--muted); font-size: 13px; }
 .switch { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13.5px; cursor: pointer; }
 .predline { margin: 10px 0; }
@@ -132,4 +182,9 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
   .viz-grid, .live-grid { grid-template-columns: 1fr; }
   input[type="range"] { width: 100%; }
   .ctrl { min-width: 130px; flex: 1 1 130px; }
+  .upload-controls { grid-template-columns: 1fr; }
+  .keyboard-picker { grid-template-columns: 1fr; gap: 8px; }
+  .audio-module { grid-template-columns: auto minmax(0, 1fr); padding: 12px; }
+  .module-actions button { min-width: 32px; padding: 5px 8px; }
+  .workbench-heading .badge { white-space: normal; }
 }

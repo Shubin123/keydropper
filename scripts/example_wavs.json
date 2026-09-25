@@ -1,0 +1,5 @@
+[
+  {"title":"Short sample","text":"demo","seed":84219,"keysPerSecond":4,"backgroundNoise":0.002},
+  {"title":"Spaced phrase","text":"hello world","seed":1,"keysPerSecond":2.5,"backgroundNoise":0.002},
+  {"title":"Medium pace","text":"blue team","seed":38,"keysPerSecond":3,"backgroundNoise":0.002}
+]

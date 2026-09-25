@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>keydropper — acoustic keystroke defense lab</title>
-  <meta name="description" content="Blue-team lab: measure how much a keyboard leaks through its sound, and run an active interference countermeasure that defeats the eavesdropper. Runs entirely in your browser." />
+  <meta name="description" content="A browser based defensive lab for exploring acoustic keyboard side channels and testing a local sound masking model. No audio is uploaded." />
+  <meta name="theme-color" content="#0b1020" />
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
@@ -17,24 +18,24 @@
           <p class="tagline">Keyboards make noise. That noise can be mapped to keystrokes — so let's stop it.</p>
         </div>
       </div>
-      <span class="badge">blue team · runs 100% in your browser</span>
+      <span class="badge">defensive research · local processing</span>
     </div>
   </header>
 
   <nav class="tabs wrap" role="tablist">
-    <button class="tab active" data-tab="lab" role="tab">Synthetic lab</button>
-    <button class="tab" data-tab="live" role="tab">Live capture</button>
-    <button class="tab" data-tab="about" role="tab">How it works</button>
+    <button class="tab active" id="tab-lab" data-tab="lab" role="tab" aria-selected="true" aria-controls="lab">Synthetic lab</button>
+    <button class="tab" id="tab-live" data-tab="live" role="tab" aria-selected="false" aria-controls="live" tabindex="-1">Live capture</button>
+    <button class="tab" id="tab-about" data-tab="about" role="tab" aria-selected="false" aria-controls="about" tabindex="-1">How it works</button>
   </nav>
 
   <main class="wrap">
     <!-- ------------------------------------------------ SYNTHETIC LAB -->
-    <section id="lab" class="panel active" role="tabpanel">
+    <section id="lab" class="panel active" role="tabpanel" aria-labelledby="tab-lab" tabindex="0">
       <p class="lead">
         A synthetic keyboard lets us run the full attack &rarr; defense loop with known
         ground truth. Build an eavesdropper, watch it read a stream of keystrokes, then
-        switch on the <strong>interference model</strong> and watch its accuracy collapse
-        toward random guessing.
+        switch on the <strong>interference model</strong> and compare recovery rates. This
+        generated benchmark is illustrative; it is not a measurement of a physical keyboard.
       </p>
 
       <div class="controls card">
@@ -61,8 +62,10 @@
           <label for="decoys">Decoys / keystroke <span id="decoysVal" class="val">4</span></label>
           <input id="decoys" type="range" min="0" max="8" value="4" step="1" />
         </div>
-        <button id="runBtn" class="primary">Run attack &amp; defense</button>
+        <button id="runBtn" class="primary">Initialize local lab</button>
       </div>
+
+      <p class="privacy-note"><strong>Local by design.</strong> The synthetic benchmark uses generated audio. Live capture is opt-in, requires microphone permission, and stays in this browser tab. This is a defensive teaching demo, not a Keytap3 port or a real-world transcription benchmark.</p>
 
       <div id="progress" class="progress hidden"><div class="bar"></div><span class="msg"></span></div>
 
@@ -74,6 +77,88 @@
         <div class="metric"><div class="mval" id="mAda">–</div><div class="mlabel">adaptive attacker<br/><em>trained on masked audio</em></div></div>
         <div class="metric"><div class="mval" id="mRed">–</div><div class="mlabel">leakage reduction</div></div>
       </div>
+
+      <section class="audio-workbench" aria-labelledby="audioWorkbenchTitle">
+        <div class="workbench-heading">
+          <div>
+            <h2 id="audioWorkbenchTitle">Keyboard and phrase modules</h2>
+            <p class="cap">Choose a simulated keyboard, then generate one phrase at a time. Reorder phrases by dragging their grip or using the move buttons.</p>
+          </div>
+          <span class="badge">one review track · local processing</span>
+        </div>
+        <div class="keyboard-picker card">
+          <label for="keyboardType">Simulated keyboard type</label>
+          <select id="keyboardType">
+            <option value="laptop">Laptop scissor switch</option>
+            <option value="membrane">Membrane keyboard</option>
+            <option value="mechanical" selected>Mechanical keyboard</option>
+          </select>
+          <span class="cap">Changing this option changes the generated key signatures and trains the matching synthetic recognizer.</span>
+        </div>
+        <div id="audioModuleStack" class="audio-module-stack" role="list" aria-label="Reorderable keyboard audio modules">
+          <article class="audio-module phrase-module" role="listitem" data-module-title="Short sample">
+            <header class="module-header">
+              <button class="module-grab" type="button" draggable="true" aria-label="Drag Short sample to reorder" title="Drag to reorder">⠿</button>
+              <div class="module-title"><span class="module-kicker">PHRASE 01</span><h3>Short sample</h3></div>
+              <div class="module-actions"><button class="module-up" type="button" aria-label="Move Short sample up">↑</button><button class="module-down" type="button" aria-label="Move Short sample down">↓</button></div>
+            </header>
+            <p class="cap">Four keys at a relaxed pace · known sequence: <code>demo</code></p>
+            <div class="module-footer"><button class="analyze-phrase-btn" type="button" data-text="demo" data-seed="84219" data-kps="4">Generate and analyze</button></div>
+          </article>
+          <article class="audio-module phrase-module" role="listitem" data-module-title="Spaced phrase">
+            <header class="module-header">
+              <button class="module-grab" type="button" draggable="true" aria-label="Drag Spaced phrase to reorder" title="Drag to reorder">⠿</button>
+              <div class="module-title"><span class="module-kicker">PHRASE 02</span><h3>Spaced phrase</h3></div>
+              <div class="module-actions"><button class="module-up" type="button" aria-label="Move Spaced phrase up">↑</button><button class="module-down" type="button" aria-label="Move Spaced phrase down">↓</button></div>
+            </header>
+            <p class="cap">Eleven keys with a word break · known sequence: <code>hello world</code></p>
+            <div class="module-footer"><button class="analyze-phrase-btn" type="button" data-text="hello world" data-seed="1" data-kps="2.5">Generate and analyze</button></div>
+          </article>
+          <article class="audio-module phrase-module" role="listitem" data-module-title="Medium pace">
+            <header class="module-header">
+              <button class="module-grab" type="button" draggable="true" aria-label="Drag Medium pace to reorder" title="Drag to reorder">⠿</button>
+              <div class="module-title"><span class="module-kicker">PHRASE 03</span><h3>Medium pace</h3></div>
+              <div class="module-actions"><button class="module-up" type="button" aria-label="Move Medium pace up">↑</button><button class="module-down" type="button" aria-label="Move Medium pace down">↓</button></div>
+            </header>
+            <p class="cap">A different phrase and rhythm · known sequence: <code>blue team</code></p>
+            <div class="module-footer"><button class="analyze-phrase-btn" type="button" data-text="blue team" data-seed="38" data-kps="3">Generate and analyze</button></div>
+          </article>
+          <article class="audio-module upload-module" role="listitem" data-module-title="WAV upload">
+            <header class="module-header">
+              <button class="module-grab" type="button" draggable="true" aria-label="Drag WAV upload to reorder" title="Drag to reorder">⠿</button>
+              <div class="module-title"><span class="module-kicker">YOUR AUDIO</span><h3>WAV upload</h3></div>
+              <div class="module-actions"><button class="module-up" type="button" aria-label="Move WAV upload up">↑</button><button class="module-down" type="button" aria-label="Move WAV upload down">↓</button></div>
+            </header>
+            <div class="upload-controls">
+              <label for="wavFileInput">Choose a local WAV file</label>
+              <input id="wavFileInput" type="file" accept=".wav,audio/wav,audio/x-wav" />
+              <label for="expectedSequence">Expected text <span class="cap">(optional)</span></label>
+              <input id="expectedSequence" class="typebox" type="text" placeholder="letters and spaces for ordered matching" autocomplete="off" />
+              <button id="analyzeUploadBtn" type="button">Analyze selected WAV</button>
+            </div>
+          </article>
+        </div>
+        <span id="moduleOrderStatus" class="sr-only" aria-live="polite"></span>
+
+        <section class="card review-card" aria-labelledby="reviewTrackTitle">
+          <div class="review-heading"><div><span class="module-kicker">SELECTED MODULE</span><h3 id="reviewTrackTitle">Audio review track</h3></div><span id="sampleStatus" class="status" role="status" aria-live="polite">Ready · local processing</span></div>
+          <audio id="sampleAudio" controls preload="metadata" src="./audio/synthetic-demo.wav">Your browser does not support WAV playback.</audio>
+          <a id="downloadCurrentWav" class="download-current" href="./audio/synthetic-demo.wav" download="keydropper-example.wav">Download current WAV</a>
+          <div class="timeline-heading">
+            <h4>Waveform and key sequence</h4>
+            <span id="playheadTime" class="status">00:00.000</span>
+          </div>
+          <div id="timelineViewport" class="timeline-viewport">
+            <canvas id="audioTimeline" width="900" height="200" tabindex="0" role="img" aria-label="Audio waveform timeline. Analyze a WAV to show timestamped key labels on the track."></canvas>
+          </div>
+          <p class="cap">Markers align to detected onsets on the audio track. Click the waveform to seek; the playhead follows playback.</p>
+          <p id="sampleResult" class="sample-result" aria-live="polite">Choose a module and analyze its clip to see the timestamped sequence.</p>
+          <details class="sequence-details">
+            <summary>Open sequence details</summary>
+            <div id="sampleSequence" class="sequence-list" aria-live="polite"></div>
+          </details>
+        </section>
+      </section>
 
       <div class="viz-grid">
         <div class="card">
@@ -100,7 +185,7 @@
     </section>
 
     <!-- ------------------------------------------------ LIVE CAPTURE -->
-    <section id="live" class="panel" role="tabpanel">
+    <section id="live" class="panel" role="tabpanel" aria-labelledby="tab-live" tabindex="0">
       <p class="lead">
         Measure <strong>your own</strong> keyboard. Grant microphone access, type into the
         box to teach a recognizer the sound of each key, then let it try to read what you
@@ -153,14 +238,15 @@
     </section>
 
     <!-- ------------------------------------------------ ABOUT -->
-    <section id="about" class="panel" role="tabpanel">
+    <section id="about" class="panel" role="tabpanel" aria-labelledby="tab-about" tabindex="0">
       <div class="card prose">
         <h2>What this is</h2>
         <p>
           A microphone near a keyboard hears every keystroke, and each key sounds a little
           different. A machine-learning model can turn that sound back into text — including
-          passwords. Recent research reports over 90% accuracy, even over a laptop mic or a
-          video call.
+          passwords. Published work demonstrates this side channel in some conditions, but
+          results depend on the keyboard, room, microphone, and recording path. This demo does
+          not reproduce real-world attack results.
         </p>
         <p>
           <strong>keydropper is a blue-team tool.</strong> It builds a small, honest
@@ -179,13 +265,12 @@
         </ol>
         <h2>Does the defense survive an attacker who knows about it?</h2>
         <p>
-          Yes — and that is the only test that counts. The lab also trains an
+          The lab also trains an
           <strong>adaptive attacker</strong> that collects its training data with the
           masking already switched on, so it learns the masked sound rather than the
-          clean one. It does no better; in fact it does slightly <em>worse</em>, because
-          the decoys corrupt the per-key templates it is trying to learn. The headline
-          number always reports the <strong>strongest</strong> of the two attackers,
-          never the flattering one.
+          clean one. Its result is shown alongside the clean-trained recognizer. Scores come
+          from a simplified synthetic keyboard model and are not a security guarantee for
+          physical devices.
         </p>
         <h2>Two things that make recognition work</h2>
         <p>
@@ -195,7 +280,8 @@
           trained on clean audio.
         </p>
         <p class="cap">
-          Everything here runs in your browser with no external services. The microphone mode
+          The app has no analytics or upload endpoint. Audio processing happens in this tab.
+          The microphone mode
           works over HTTPS (this page on GitHub Pages) or on localhost; the synthetic lab works
           anywhere, even opened directly from disk.
         </p>

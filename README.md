@@ -12,16 +12,28 @@ toward random guessing.
 The whole pipeline is also ported to a **self-contained, dependency-free web app** in
 [`web/`](web/) — open `web/index.html` directly, or serve it over GitHub Pages.
 
-- **Synthetic lab** — build an eavesdropper, watch it read a keystroke stream, then flip
-  on the interference model and watch its accuracy collapse toward chance. Works
-  anywhere, even from `file://`.
+- **Synthetic lab** — compare a lightweight recognizer against generated keystroke audio
+  with and without modeled masking. Results are illustrative and do not represent real
+  keyboards. Works anywhere, even from `file://`.
 - **Live capture** — grant mic access, type to teach it your own keyboard, then let it
   read you; toggle masking to defend in real time. Needs HTTPS (Pages) or localhost.
+- **Keyboard and phrase modules** — choose one of three simulated keyboard types from a
+  dropdown, then generate one of three labeled typing samples into the single review track.
+  These are toy acoustic profiles, not recordings of physical keyboards. Drag phrase
+  modules to reorder them, or use the move buttons for keyboard and touch access. Regenerate
+  the reference WAV and check all profile/sample combinations with
+  `node scripts/generate_example_wav.js` and `node scripts/check_example_wav.js`.
+- **Local WAV analysis** — select a mono 16 kHz PCM16 WAV file for in-browser analysis.
+  The waveform and timestamped expected/predicted key markers share one seekable timeline;
+  the playhead follows playback. Supply expected text to show ordered label matches;
+  without it, results are shown as unlabeled predictions.
 
-**Deploy to GitHub Pages:** in the repo, go to **Settings → Pages → Build and
-deployment → Source: GitHub Actions**. The workflow in
-[`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) then publishes
-`web/` on every push, at `https://<user>.github.io/keydropper/`.
+**Public demo:** [shubin123.github.io/keydropper](https://shubin123.github.io/keydropper/).
+GitHub Pages publishes `web/` through GitHub Actions. Updates to `web/` deploy
+automatically from `main`; see [the workflow](.github/workflows/deploy-pages.yml).
+
+The browser app is a defensive teaching demo, not a port of Keytap3. It has no analytics
+or upload endpoint; live audio is processed in the current tab.
 
 ## Two models, one repo
 1. **Recognizer** (the threat yardstick) — a small, efficient, on-device keystroke

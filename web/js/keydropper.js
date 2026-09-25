@@ -28,6 +28,11 @@
   };
 
   const DEFAULT_KEYS = "abcdefghijklmnopqrstuvwxyz".split("").concat(["<space>"]);
+  const SYNTH_KEYBOARDS = {
+    laptop: { label: "Laptop scissor switch · simulated", seed: "keydropper:laptop", resonances: 5, freq: [500, 6600], decay: [0.004, 0.022] },
+    membrane: { label: "Membrane keyboard · simulated", seed: "keydropper:membrane", resonances: 5, freq: [400, 6900], decay: [0.005, 0.026] },
+    mechanical: { label: "Mechanical keyboard · simulated", seed: "20240517", resonances: 5, freq: [400, 7200], decay: [0.005, 0.03] },
+  };
 
   // ---------------------------------------------------------------- seeded RNG ----
   function xmur3(str) {
@@ -158,20 +163,22 @@
 
   // --------------------------------------------------------------------- synth ----
   const synth = {};
-  function keyResonances(key, keyboardSeed) {
-    const rng = new Rng(keyboardSeed + ":" + key);
+  function keyResonances(key, keyboardSeed, keyboardType) {
+    const profile = SYNTH_KEYBOARDS[keyboardType] || SYNTH_KEYBOARDS.mechanical;
+    const rng = new Rng(keyboardType === "mechanical" ? keyboardSeed + ":" + key : keyboardSeed + ":" + keyboardType + ":" + key);
     const res = [];
-    for (let i = 0; i < 5; i++) {
-      res.push({ freq: rng.uniform(400, 7200), decay: rng.uniform(0.005, 0.03), amp: rng.uniform(0.4, 1.0) });
+    for (let i = 0; i < profile.resonances; i++) {
+      res.push({ freq: rng.uniform(profile.freq[0], profile.freq[1]), decay: rng.uniform(profile.decay[0], profile.decay[1]), amp: rng.uniform(0.4, 1.0) });
     }
     return res;
   }
   // One keystroke waveform. rng => per-hit jitter; without it, the canonical template.
-  synth.keySignature = function (key, windowMs, rng, keyboardSeed) {
+  synth.keySignature = function (key, windowMs, rng, keyboardSeed, keyboardType) {
     keyboardSeed = keyboardSeed || CFG.KEYBOARD_SEED;
+    keyboardType = keyboardType || "mechanical";
     const sr = CFG.audio.sr;
     const n = Math.max(1, Math.round((windowMs * sr) / 1000));
-    const res = keyResonances(key, keyboardSeed);
+    const res = keyResonances(key, keyboardSeed, keyboardType);
     let ampScale = 1, detune = 1, noiseAmp = 0;
     if (rng) { ampScale = rng.uniform(0.9, 1.1); detune = rng.uniform(0.995, 1.005); noiseAmp = rng.uniform(0.002, 0.008); }
     const out = new Float64Array(n);
@@ -247,7 +254,7 @@
     for (let idx = 0; idx < text.length; idx++) {
       const ch = text[idx];
       const key = ch === " " ? "<space>" : ch;
-      const sig = synth.keySignature(key, windowMs, rng);
+      const sig = synth.keySignature(key, windowMs, rng, opts.keyboardSeed, opts.keyboardType);
       const pos = positions[idx];
       events.push({ onset: pos + Math.floor(0.1 * sig.length), key });
       for (let i = 0; i < sig.length; i++) { const j = pos + i; if (j >= 0 && j < total) samples[j] += sig[i]; }
@@ -284,9 +291,10 @@
       const rising = sm[i] > sm[i - 1];
       if (armed && sm[i] >= threshold && rising) {
         if (centers[i] - last >= refractory) {
-          let j = i, steps = 0;
-          while (j + 1 < sm.length && sm[j + 1] >= sm[j] && steps < 8) { j++; steps++; }
-          onsets.push(centers[j]); last = centers[j]; armed = false;
+          // Timestamp the leading edge that crossed the noise threshold. The
+          // local peak is useful for feature alignment, but it trails the audible
+          // impact by several milliseconds and makes the timeline look late.
+          onsets.push(centers[i]); last = centers[i]; armed = false;
         }
       } else if (sm[i] < threshold) armed = true;
     }
@@ -296,7 +304,10 @@
     const seg = CFG.segment;
     const win = msToSamples(seg.windowMs), pre = msToSamples(seg.preOnsetMs), n = x.length;
     return onsets.map((onset) => {
-      const start = onset - pre, clip = new Float64Array(win);
+      // Keep the classifier's historical peak-centered crop while exposing the
+      // earlier threshold-crossing sample as the user-facing timestamp.
+      const featureAnchor = onset + msToSamples(5);
+      const start = featureAnchor - pre, clip = new Float64Array(win);
       for (let k = 0; k < win; k++) { const src = start + k; if (src >= 0 && src < n) clip[k] = x[src]; }
       return clip;
     });
@@ -464,7 +475,8 @@
   // `transform(samples, events) -> samples` rewrites each stream before segmentation.
   // That is how an ADAPTIVE attacker collects data: with the defense already running,
   // so it learns the masked distribution rather than the clean one.
-  data.buildTrainingSet = function (keys, perKey, seed, transform) {
+  data.buildTrainingSet = function (keys, perKey, seed, transform, keyboardOptions) {
+    keyboardOptions = keyboardOptions || {};
     const rng = new Rng(1234 + (seed || 0));
     const seq = [];
     for (const k of keys) for (let i = 0; i < perKey; i++) seq.push(k);
@@ -473,7 +485,7 @@
     for (let start = 0; start < seq.length; start += chunk) {
       const part = seq.slice(start, start + chunk);
       const text = part.map((k) => (k === "<space>" ? " " : k)).join("");
-      const { samples, events } = synth.renderStream(text, 1234 + (seed || 0) + start, CFG.segment.windowMs);
+      const { samples, events } = synth.renderStream(text, 1234 + (seed || 0) + start, CFG.segment.windowMs, keyboardOptions);
       const used = transform ? transform(samples, events, start) : samples;
       const r = data.labelDetectedClips(used, events);
       for (let i = 0; i < r.clips.length; i++) { clips.push(r.clips[i]); labels.push(r.labels[i]); }
@@ -531,6 +543,6 @@
   };
 
   global.KD = {
-    CFG, DEFAULT_KEYS, Rng, dsp, synth, segment, features, models, data, masker, defense,
+    CFG, DEFAULT_KEYS, SYNTH_KEYBOARDS, Rng, dsp, synth, segment, features, models, data, masker, defense,
   };
 })(typeof window !== "undefined" ? window : this);
