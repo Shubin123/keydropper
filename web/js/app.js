@@ -233,31 +233,128 @@
     return samples;
   }
 
-  $("analyzeSampleBtn").addEventListener("click", async () => {
-    const button = $("analyzeSampleBtn"), status = $("sampleStatus"), result = $("sampleResult");
-    button.disabled = true; status.textContent = "Loading local WAV…";
-    try {
-      await tick();
-      const response = await fetch("./audio/synthetic-demo.wav");
-      if (!response.ok) throw new Error(`Could not load the WAV (HTTP ${response.status}).`);
-      const samples = decodeExampleWav(await response.arrayBuffer());
+  let sampleRecognizer = null;
+  let sampleFrames = 0;
+
+  function formatTimestamp(sample) {
+    const seconds = sample / K.CFG.audio.sr;
+    const minutes = Math.floor(seconds / 60);
+    return `${String(minutes).padStart(2, "0")}:${(seconds % 60).toFixed(3).padStart(6, "0")}`;
+  }
+
+  function alignKeySequences(expected, predicted) {
+    if (expected === null) return predicted.map((key, index) => ({ expected: null, predicted: key, predIndex: index }));
+    const rows = expected.length + 1, cols = predicted.length + 1;
+    const cost = Array.from({ length: rows }, () => new Uint32Array(cols));
+    for (let i = expected.length; i >= 0; i--) {
+      for (let j = predicted.length; j >= 0; j--) {
+        if (i === expected.length) cost[i][j] = predicted.length - j;
+        else if (j === predicted.length) cost[i][j] = expected.length - i;
+        else if (expected[i] === (predicted[j] === "<space>" ? " " : predicted[j])) cost[i][j] = cost[i + 1][j + 1];
+        else cost[i][j] = 1 + Math.min(cost[i + 1][j + 1], cost[i + 1][j], cost[i][j + 1]);
+      }
+    }
+    const aligned = [];
+    let i = 0, j = 0;
+    while (i < expected.length || j < predicted.length) {
+      if (i < expected.length && j < predicted.length &&
+          expected[i] === (predicted[j] === "<space>" ? " " : predicted[j]) && cost[i][j] === cost[i + 1][j + 1]) {
+        aligned.push({ expected: expected[i], predicted: predicted[j], predIndex: j }); i++; j++;
+      } else if (i < expected.length && j < predicted.length && cost[i][j] === 1 + cost[i + 1][j + 1]) {
+        aligned.push({ expected: expected[i], predicted: predicted[j], predIndex: j }); i++; j++;
+      } else if (i < expected.length && cost[i][j] === 1 + cost[i + 1][j]) {
+        aligned.push({ expected: expected[i], predicted: null, predIndex: null }); i++;
+      } else {
+        aligned.push({ expected: null, predicted: predicted[j], predIndex: j }); j++;
+      }
+    }
+    return aligned;
+  }
+
+  function renderKeySequence(predicted, onsets, expected) {
+    const root = $("sampleSequence"); root.replaceChildren();
+    const aligned = alignKeySequences(expected, predicted);
+    const keyLabel = (key) => key === null ? "—" : key === "<space>" || key === " " ? "␣" : key;
+    const table = document.createElement("table");
+    const head = document.createElement("thead"), headRow = document.createElement("tr");
+    ["#", "Time", "Expected", "Predicted", "Result"].forEach((label) => {
+      const th = document.createElement("th"); th.scope = "col"; th.textContent = label; headRow.appendChild(th);
+    });
+    head.appendChild(headRow); table.appendChild(head);
+    const body = document.createElement("tbody");
+    let matches = 0;
+    aligned.forEach((item, index) => {
+      const tr = document.createElement("tr");
+      const cells = [String(index + 1), item.predIndex === null ? "—" : formatTimestamp(onsets[item.predIndex]), keyLabel(item.expected), keyLabel(item.predicted)];
+      cells.forEach((value, cellIndex) => {
+        const td = document.createElement("td"); td.textContent = value;
+        if (cellIndex === 0) td.className = "sequence-index";
+        if (cellIndex === 1 && item.predIndex !== null) {
+          const sec = onsets[item.predIndex] / K.CFG.audio.sr;
+          const time = document.createElement("time"); time.dateTime = `PT${sec.toFixed(3)}S`; time.textContent = cells[1];
+          td.replaceChildren(time);
+        }
+        tr.appendChild(td);
+      });
+      const result = document.createElement("td");
+      if (expected === null) { result.textContent = "unlabeled"; result.className = "sequence-unknown"; }
+      else if (item.expected !== null && item.expected === (item.predicted === "<space>" ? " " : item.predicted)) {
+        result.textContent = "match"; result.className = "sequence-match"; matches++;
+      } else { result.textContent = "mismatch"; result.className = "sequence-mismatch"; }
+      tr.appendChild(result); body.appendChild(tr);
+    });
+    table.appendChild(body); root.appendChild(table);
+    return { aligned: aligned.length, matches };
+  }
+
+  async function analyzeWav(buffer, expectedText, sourceLabel) {
+    const status = $("sampleStatus"), result = $("sampleResult");
+    status.textContent = "Reading WAV locally…";
+    const samples = decodeExampleWav(buffer);
+    await tick();
+    if (!sampleRecognizer) {
       status.textContent = "Training the local recognizer…";
       await tick();
-      const nFrames = K.features.inferNFrames(K.CFG.segment.windowMs);
+      sampleFrames = K.features.inferNFrames(K.CFG.segment.windowMs);
       const train = K.data.buildTrainingSet(K.DEFAULT_KEYS, 12, 212);
-      const clf = new K.models.KNN(3).fit(K.features.featurize(train.clips, nFrames), train.labels);
-      const detected = K.segment.segment(samples);
-      if (!detected.clips.length) throw new Error("No keyboard onsets were detected in the sample.");
-      const predicted = clf.predict(K.features.featurize(detected.clips, nFrames));
-      const expected = "demo".split("");
-      const aligned = Math.min(predicted.length, expected.length);
-      let correct = 0;
-      for (let i = 0; i < aligned; i++) if (predicted[i] === expected[i]) correct++;
-      result.textContent = `Predicted: ${predicted.join("")} · detected ${predicted.length}/${expected.length} onsets · ${correct}/${aligned} known labels matched`;
-      status.textContent = "Analyzed locally · no upload";
+      sampleRecognizer = new K.models.KNN(3).fit(K.features.featurize(train.clips, sampleFrames), train.labels);
+    }
+    const detected = K.segment.segment(samples);
+    if (!detected.clips.length) throw new Error("No keyboard onsets were detected in the WAV.");
+    const predicted = sampleRecognizer.predict(K.features.featurize(detected.clips, sampleFrames));
+    const expected = expectedText === null ? null : Array.from(expectedText.toLowerCase());
+    const summary = renderKeySequence(predicted, detected.onsets, expected);
+    result.textContent = expected === null
+      ? `${sourceLabel}: predicted ${predicted.length} keys in timestamp order. Add expected text to see label matches.`
+      : `${sourceLabel}: ${summary.matches}/${summary.aligned} ordered labels matched · ${predicted.length} keys predicted.`;
+    status.textContent = "Analyzed locally · file was not uploaded";
+  }
+
+  $("analyzeSampleBtn").addEventListener("click", async () => {
+    const button = $("analyzeSampleBtn"); button.disabled = true;
+    try {
+      const response = await fetch("./audio/synthetic-demo.wav");
+      if (!response.ok) throw new Error(`Could not load the WAV (HTTP ${response.status}).`);
+      await analyzeWav(await response.arrayBuffer(), "demo", "Built-in sample");
     } catch (error) {
-      status.textContent = "Could not analyze sample";
-      result.textContent = error.message;
+      $("sampleStatus").textContent = "Could not analyze sample";
+      $("sampleResult").textContent = error.message;
+      $("sampleSequence").replaceChildren();
+    } finally { button.disabled = false; }
+  });
+
+  $("analyzeUploadBtn").addEventListener("click", async () => {
+    const button = $("analyzeUploadBtn"), file = $("wavFileInput").files[0];
+    button.disabled = true;
+    try {
+      if (!file) throw new Error("Choose a WAV file first.");
+      const rawExpected = $("expectedSequence").value.toLowerCase();
+      if (rawExpected && !/^[a-z ]+$/.test(rawExpected)) throw new Error("Expected text can contain English letters and spaces only.");
+      await analyzeWav(await file.arrayBuffer(), rawExpected || null, file.name);
+    } catch (error) {
+      $("sampleStatus").textContent = "Could not analyze WAV";
+      $("sampleResult").textContent = error.message;
+      $("sampleSequence").replaceChildren();
     } finally { button.disabled = false; }
   });
 

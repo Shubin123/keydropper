@@ -85,9 +85,18 @@
         <div class="row">
           <button id="analyzeSampleBtn">Classify example WAV</button>
           <a href="./audio/synthetic-demo.wav" download>Download WAV</a>
-          <span id="sampleStatus" class="status" role="status" aria-live="polite">Ready · 16 kHz mono PCM</span>
         </div>
-        <p id="sampleResult" class="sample-result" aria-live="polite">The recognizer has not analyzed this clip yet.</p>
+        <div class="upload-controls">
+          <label for="wavFileInput">Or choose a WAV file</label>
+          <input id="wavFileInput" type="file" accept=".wav,audio/wav,audio/x-wav" />
+          <label for="expectedSequence">Expected text <span class="cap">(optional, for ordered label matching)</span></label>
+          <input id="expectedSequence" class="typebox" type="text" placeholder="type the expected letters and spaces" autocomplete="off" />
+          <button id="analyzeUploadBtn">Analyze selected WAV</button>
+        </div>
+        <p class="cap">Only mono 16 kHz PCM16 WAV files are supported. File processing stays in this browser; the built-in recognizer was trained on synthetic audio, so it may not recognize recordings from physical keyboards.</p>
+        <span id="sampleStatus" class="status" role="status" aria-live="polite">Ready · local processing</span>
+        <p id="sampleResult" class="sample-result" aria-live="polite">The recognizer has not analyzed a clip yet.</p>
+        <div id="sampleSequence" class="sequence-list" aria-live="polite"></div>
       </div>
 
       <div class="viz-grid">

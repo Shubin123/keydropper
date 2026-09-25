@@ -115,6 +115,17 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
 .sample-card audio { display: block; width: min(100%, 560px); margin: 12px 0; }
 .sample-card a { color: var(--accent-2); font-size: 13px; }
 .sample-result { color: var(--text); font-family: ui-monospace, "SF Mono", Menlo, monospace; margin: 12px 0 0; }
+.upload-controls { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr); gap: 8px 14px; align-items: center; max-width: 720px; margin: 14px 0; }
+.upload-controls > label { color: var(--muted); font-size: 13px; }
+.upload-controls input[type="file"] { color: var(--muted); font-size: 13px; }
+.sequence-list { margin-top: 14px; overflow-x: auto; }
+.sequence-list table { border-collapse: collapse; min-width: 500px; width: 100%; font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
+.sequence-list th, .sequence-list td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.sequence-list th { color: var(--muted); font: 11px/1.4 ui-monospace, "SF Mono", Menlo, monospace; text-transform: uppercase; letter-spacing: .04em; }
+.sequence-list time, .sequence-index { color: var(--muted); }
+.sequence-match { color: var(--good); }
+.sequence-mismatch { color: var(--danger); }
+.sequence-unknown { color: var(--muted); }
 .status { color: var(--muted); font-size: 13px; }
 .switch { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13.5px; cursor: pointer; }
 .predline { margin: 10px 0; }
@@ -137,4 +148,5 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
   .viz-grid, .live-grid { grid-template-columns: 1fr; }
   input[type="range"] { width: 100%; }
   .ctrl { min-width: 130px; flex: 1 1 130px; }
+  .upload-controls { grid-template-columns: 1fr; }
 }

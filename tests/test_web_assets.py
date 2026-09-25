@@ -54,6 +54,15 @@ def test_app_bindings_resolve_to_page_controls():
     bound_ids = set(re.findall(r'\$\("([A-Za-z][A-Za-z0-9_-]*)"\)', source))
     assert bound_ids <= parser.ids
     assert {"runBtn", "micBtn", "trainBtn", "testBox", "maskToggle"} <= parser.ids
+    assert {"wavFileInput", "expectedSequence", "analyzeUploadBtn", "sampleSequence"} <= parser.ids
+
+
+def test_wav_results_are_rendered_in_timestamped_sequence_order():
+    source = (WEB / "js/app.js").read_text()
+    assert 'formatTimestamp(onsets[item.predIndex])' in source
+    assert 'time.dateTime = `PT${sec.toFixed(3)}S`' in source
+    assert 'result.textContent = expected === null' in source
+    assert 'file.arrayBuffer()' in source
 
 
 def test_page_explains_scope_and_local_audio_handling():
