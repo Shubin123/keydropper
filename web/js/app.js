@@ -6,12 +6,29 @@
   const tick = () => new Promise((r) => setTimeout(r, 0));
 
   // -------------------------------------------------------------------- tabs ----
-  document.querySelectorAll(".tab").forEach((t) => {
-    t.addEventListener("click", () => {
+  const tabs = Array.from(document.querySelectorAll(".tab"));
+  function activateTab(t, focus = false) {
       document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
       document.querySelectorAll(".panel").forEach((x) => x.classList.remove("active"));
       t.classList.add("active");
+      tabs.forEach((x) => {
+        const selected = x === t;
+        x.setAttribute("aria-selected", String(selected));
+        x.tabIndex = selected ? 0 : -1;
+      });
       $(t.dataset.tab).classList.add("active");
+      if (focus) t.focus();
+  }
+  tabs.forEach((t, index) => {
+    t.addEventListener("click", () => activateTab(t));
+    t.addEventListener("keydown", (event) => {
+      let next = index;
+      if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+      else if (event.key === "ArrowLeft") next = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = tabs.length - 1;
+      else return;
+      event.preventDefault(); activateTab(tabs[next], true);
     });
   });
 
@@ -177,6 +194,7 @@
       const mwin = Array.from(defended.slice(Math.max(0, a), a + span));
       drawOverlay(cwin, mwin, "maskChart");
 
+      $("runBtn").textContent = "Run benchmark again";
       setProg(100, "done."); setTimeout(() => prog.classList.add("hidden"), 600);
     } catch (e) {
       prog.querySelector(".msg").textContent = "error: " + e.message;
@@ -313,6 +331,4 @@
   }
   $("testBox").addEventListener("keydown", onTestKey);
 
-  // run one benchmark on load so the page isn't empty
-  window.addEventListener("load", () => setTimeout(runBenchmark, 150));
 })();

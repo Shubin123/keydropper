@@ -1,7 +1,7 @@
 name: Deploy web app to GitHub Pages
 
 # Publishes the static web app in web/ to GitHub Pages.
-# One-time setup: repo Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+# The repository Pages site is configured for GitHub Actions deployment.
 
 on:
   push:
@@ -23,22 +23,24 @@ concurrency:
 
 jobs:
   deploy:
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload web/ as the Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: web
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

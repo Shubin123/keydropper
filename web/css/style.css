@@ -53,6 +53,8 @@ h1 { margin: 0; font-size: 26px; letter-spacing: .3px; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .lead { color: var(--muted); font-size: 15.5px; max-width: 780px; }
 .note { color: var(--accent-2); font-size: 13px; min-height: 1em; }
+.privacy-note { color: var(--muted); border-left: 3px solid var(--accent-2); padding: 10px 14px; margin: 12px 0 22px; background: rgba(56,214,200,.06); border-radius: 0 8px 8px 0; font-size: 13px; }
+.privacy-note strong { color: var(--text); }
 
 /* cards */
 .card {
@@ -80,6 +82,7 @@ button {
 }
 button:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
 button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
 button.primary { background: linear-gradient(90deg, var(--accent), #6aa1ff); border-color: transparent; color: #061024; font-weight: 700; }
 button.ghost { background: transparent; }
 
