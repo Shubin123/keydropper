@@ -199,7 +199,9 @@
   async function enableMic() {
     try {
       live.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-      live.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Reuse a context created by the sound-preview button; browsers limit the
+      // number of AudioContexts a page may create.
+      live.ctx = live.ctx || new (window.AudioContext || window.webkitAudioContext)();
       live.R = Math.round(live.ctx.sampleRate * 3);
       live.ring = new Float32Array(live.R);
       const src = live.ctx.createMediaStreamSource(live.stream);
@@ -242,22 +244,36 @@
     return null;
   }
 
+  function selectedSound() { return $("soundSample").value; }
+
+  function ensurePlaybackContext() {
+    if (!live.ctx) live.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (live.ctx.state === "suspended") live.ctx.resume();
+    return live.ctx;
+  }
+
+  function playSample(key, when, gain) {
+    const ctx = ensurePlaybackContext();
+    const sig = K.synth.keyboardSample(key, K.CFG.segment.windowMs, selectedSound());
+    const buf = ctx.createBuffer(1, sig.length, TARGET_SR);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < sig.length; i++) ch[i] = sig[i] * 0.5;
+    const source = ctx.createBufferSource(); source.buffer = buf;
+    const volume = ctx.createGain(); volume.gain.value = gain;
+    source.connect(volume); volume.connect(ctx.destination);
+    source.start(when === undefined ? ctx.currentTime : when);
+  }
+
   function playMasking() {
     if (!live.ctx) return;
     const keys = K.DEFAULT_KEYS;
-    const windowMs = K.CFG.segment.windowMs;
     for (let d = 0; d < 2; d++) {
       const key = keys[Math.floor(Math.random() * keys.length)];
-      const sig = K.synth.keySignature(key, windowMs);
-      const buf = live.ctx.createBuffer(1, sig.length, TARGET_SR);
-      const ch = buf.getChannelData(0);
-      for (let i = 0; i < sig.length; i++) ch[i] = sig[i] * 0.5;
-      const s = live.ctx.createBufferSource(); s.buffer = buf;
-      const g = live.ctx.createGain(); g.gain.value = 0.9;
-      s.connect(g); g.connect(live.ctx.destination);
-      s.start(live.ctx.currentTime + d * 0.008 + Math.random() * 0.006);
+      playSample(key, live.ctx.currentTime + d * 0.008 + Math.random() * 0.006, 0.9);
     }
   }
+
+  $("previewSoundBtn").addEventListener("click", () => playSample("f", undefined, 0.75));
 
   function onTrainKey(e) {
     const key = keyFromEvent(e);

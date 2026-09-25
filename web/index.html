@@ -112,6 +112,17 @@
       <div class="controls card">
         <button id="micBtn" class="primary">Enable microphone</button>
         <span id="micStatus" class="status">microphone off</span>
+        <div class="ctrl sound-picker">
+          <label for="soundSample">Masking sound</label>
+          <select id="soundSample" aria-describedby="soundSampleHint">
+            <option value="mechanical" selected>Mechanical click</option>
+            <option value="laptop">Laptop tap</option>
+            <option value="typewriter">Typewriter</option>
+            <option value="membrane">Membrane thud</option>
+          </select>
+          <span id="soundSampleHint" class="status">Used for every masking decoy.</span>
+        </div>
+        <button id="previewSoundBtn" type="button" class="ghost">Preview sound</button>
         <label class="switch"><input type="checkbox" id="maskToggle" /> <span>play masking on every keypress</span></label>
       </div>
 

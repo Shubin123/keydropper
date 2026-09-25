@@ -68,6 +68,8 @@ h1 { margin: 0; font-size: 26px; letter-spacing: .3px; }
 .ctrl { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
 .ctrl label { font-size: 12.5px; color: var(--muted); }
 .ctrl .val { color: var(--accent-2); font-weight: 600; }
+.sound-picker { min-width: 175px; }
+.sound-picker .status { line-height: 1.2; max-width: 175px; }
 select, input[type="range"] { accent-color: var(--accent); }
 select {
   background: var(--card-2); color: var(--text); border: 1px solid var(--line);

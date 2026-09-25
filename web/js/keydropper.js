@@ -191,6 +191,43 @@
     for (let i = 0; i < n; i++) out[i] /= peak;
     return out;
   };
+  // Playback profiles for the live masking control.  They retain the per-key
+  // identity while changing the envelope and resonances enough to sound distinct.
+  synth.SAMPLE_PROFILES = {
+    mechanical: "Mechanical click",
+    laptop: "Laptop tap",
+    typewriter: "Typewriter",
+    membrane: "Membrane thud",
+  };
+  synth.keyboardSample = function (key, windowMs, profile) {
+    const base = synth.keySignature(key, windowMs);
+    const sr = CFG.audio.sr, n = base.length;
+    const out = new Float64Array(n);
+    profile = synth.SAMPLE_PROFILES[profile] ? profile : "mechanical";
+    let peak = 1e-8;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      // A deterministic noise burst gives a physical attack without making
+      // repeated previews of the same sample unexpectedly change.
+      const noise = Math.sin((i + 1) * 127.1 + key.charCodeAt(0) * 19.7) * 0.14;
+      let v;
+      if (profile === "laptop") {
+        v = base[i] * Math.exp(-t / 0.014) * 0.55 + noise * Math.exp(-t / 0.004);
+      } else if (profile === "typewriter") {
+        const bell = Math.sin(2 * Math.PI * 2450 * t) * Math.exp(-t / 0.06) * 0.28;
+        v = base[i] * 0.65 + noise * Math.exp(-t / 0.012) + bell;
+      } else if (profile === "membrane") {
+        const thud = Math.sin(2 * Math.PI * 180 * t) * Math.exp(-t / 0.022) * 0.55;
+        v = base[i] * Math.exp(-t / 0.025) * 0.32 + thud + noise * Math.exp(-t / 0.008) * 0.35;
+      } else {
+        v = base[i] * 0.9 + noise * Math.exp(-t / 0.009) * 0.45;
+      }
+      out[i] = v;
+      peak = Math.max(peak, Math.abs(v));
+    }
+    for (let i = 0; i < n; i++) out[i] /= peak;
+    return out;
+  };
   // Render a typing stream. Returns { samples, events:[{onset,key}] }.
   synth.renderStream = function (text, seed, windowMs, opts) {
     opts = opts || {};
