@@ -254,9 +254,10 @@
       const rising = sm[i] > sm[i - 1];
       if (armed && sm[i] >= threshold && rising) {
         if (centers[i] - last >= refractory) {
-          let j = i, steps = 0;
-          while (j + 1 < sm.length && sm[j + 1] >= sm[j] && steps < 8) { j++; steps++; }
-          onsets.push(centers[j]); last = centers[j]; armed = false;
+          // Timestamp the leading edge that crossed the noise threshold. The
+          // local peak is useful for feature alignment, but it trails the audible
+          // impact by several milliseconds and makes the timeline look late.
+          onsets.push(centers[i]); last = centers[i]; armed = false;
         }
       } else if (sm[i] < threshold) armed = true;
     }
@@ -266,7 +267,10 @@
     const seg = CFG.segment;
     const win = msToSamples(seg.windowMs), pre = msToSamples(seg.preOnsetMs), n = x.length;
     return onsets.map((onset) => {
-      const start = onset - pre, clip = new Float64Array(win);
+      // Keep the classifier's historical peak-centered crop while exposing the
+      // earlier threshold-crossing sample as the user-facing timestamp.
+      const featureAnchor = onset + msToSamples(5);
+      const start = featureAnchor - pre, clip = new Float64Array(win);
       for (let k = 0; k < win; k++) { const src = start + k; if (src >= 0 && src < n) clip[k] = x[src]; }
       return clip;
     });

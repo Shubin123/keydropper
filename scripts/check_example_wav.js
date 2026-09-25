@@ -35,7 +35,7 @@ for (const [keyboardType, profile] of Object.entries(K.SYNTH_KEYBOARDS)) {
   }
   const recognizer = new K.models.KNN(3).fit(K.features.featurize(trainClips, nFrames), trainLabels);
   for (const example of examples) {
-    const { samples } = K.synth.renderStream(example.text, example.seed, K.CFG.segment.windowMs, {
+    const { samples, events } = K.synth.renderStream(example.text, example.seed, K.CFG.segment.windowMs, {
       keysPerSecond: example.keysPerSecond, backgroundNoise: example.backgroundNoise,
       keyboardType, keyboardSeed: profile.seed,
     });
@@ -53,6 +53,10 @@ for (const [keyboardType, profile] of Object.entries(K.SYNTH_KEYBOARDS)) {
     const { clips, onsets } = K.segment.segment(decoded);
     assert.equal(onsets.length, Array.from(example.text).length, `${keyboardType}/${example.text} onset count`);
     for (let i = 1; i < onsets.length; i++) assert.ok(onsets[i] > onsets[i - 1], 'timestamps stay ordered');
+    for (let i = 0; i < onsets.length; i++) {
+      const errorMs = Math.abs(onsets[i] - events[i].onset) * 1000 / sampleRate;
+      assert.ok(errorMs <= 8, `${keyboardType}/${example.text} timestamp ${i} was ${errorMs.toFixed(1)} ms from the known impact`);
+    }
     const prediction = recognizer.predict(K.features.featurize(clips, nFrames));
     assert.equal(prediction.length, onsets.length, `${keyboardType}/${example.text} prediction count`);
     const recognizedText = prediction.map((key) => key === '<space>' ? ' ' : key).join('');
