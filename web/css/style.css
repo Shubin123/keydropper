@@ -114,6 +114,9 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
 .audio-workbench { margin: 26px 0; }
 .workbench-heading, .review-heading { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
 .workbench-heading h2, .review-heading h3 { margin: 0; font-size: 18px; }
+.keyboard-picker { display: grid; grid-template-columns: auto minmax(190px, 260px) minmax(220px, 1fr); gap: 12px; align-items: center; margin-bottom: 12px; }
+.keyboard-picker label { color: var(--text); font-size: 13px; font-weight: 650; }
+.keyboard-picker .cap { margin: 0; }
 .audio-module-stack { display: grid; gap: 10px; }
 .audio-module { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 12px; padding: 14px 16px; background: linear-gradient(180deg, var(--card), var(--bg-soft)); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); transition: border-color .15s, opacity .15s, transform .15s; }
 .audio-module:hover { border-color: #40517d; }
@@ -145,7 +148,7 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
 .timeline-viewport canvas:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -3px; }
 .sequence-details { margin-top: 12px; }
 .sequence-details summary { color: var(--accent-2); font-size: 13px; cursor: pointer; }
-.sample-card a { color: var(--accent-2); font-size: 13px; }
+.download-current { display: inline-block; color: var(--accent-2); font-size: 13px; margin: 2px 0 8px; }
 .sample-result { color: var(--text); font-family: ui-monospace, "SF Mono", Menlo, monospace; margin: 12px 0 0; }
 .sequence-list { margin-top: 10px; overflow-x: auto; }
 .sequence-list table { border-collapse: collapse; min-width: 500px; width: 100%; font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
@@ -178,6 +181,7 @@ canvas { width: 100%; height: auto; display: block; border-radius: 8px; backgrou
   input[type="range"] { width: 100%; }
   .ctrl { min-width: 130px; flex: 1 1 130px; }
   .upload-controls { grid-template-columns: 1fr; }
+  .keyboard-picker { grid-template-columns: 1fr; gap: 8px; }
   .audio-module { grid-template-columns: auto minmax(0, 1fr); padding: 12px; }
   .module-actions button { min-width: 32px; padding: 5px 8px; }
   .workbench-heading .badge { white-space: normal; }

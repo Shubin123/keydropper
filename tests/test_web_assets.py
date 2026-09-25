@@ -19,7 +19,9 @@ class PageParser(HTMLParser):
         self.panels = {}
         self.local_assets = []
         self.audio_assets = []
+        self.audio_count = 0
         self.modules = 0
+        self.phrase_modules = 0
         self.module_grips = 0
 
     def handle_starttag(self, tag, attrs):
@@ -32,10 +34,14 @@ class PageParser(HTMLParser):
             self.panels[attrs.get("id")] = attrs.get("aria-labelledby")
         if tag == "script" and attrs.get("src"):
             self.local_assets.append(attrs["src"])
-        if tag == "audio" and attrs.get("src"):
-            self.audio_assets.append(attrs["src"])
+        if tag == "audio":
+            self.audio_count += 1
+            if attrs.get("src"):
+                self.audio_assets.append(attrs["src"])
         if tag == "article" and attrs.get("role") == "listitem":
             self.modules += 1
+            if "phrase-module" in attrs.get("class", "").split():
+                self.phrase_modules += 1
         if tag == "button" and "module-grab" in attrs.get("class", "").split() and attrs.get("draggable") == "true":
             self.module_grips += 1
         if tag == "link" and attrs.get("rel") == "stylesheet":
@@ -45,10 +51,11 @@ class PageParser(HTMLParser):
 def test_pages_assets_are_local_and_present():
     parser = PageParser()
     parser.feed((WEB / "index.html").read_text())
+    assert parser.audio_count == 1  # one review player shared by every phrase module
     assert parser.local_assets
     assert all(not asset.startswith(("http:", "https:", "//")) for asset in parser.local_assets)
     assert all((WEB / asset.removeprefix("./")).is_file() for asset in parser.local_assets)
-    assert len(set(parser.audio_assets)) == 3
+    assert set(parser.audio_assets) == {"./audio/synthetic-demo.wav"}
     assert all((WEB / asset.removeprefix("./")).is_file() for asset in parser.audio_assets)
 
 
@@ -56,12 +63,19 @@ def test_audio_examples_are_independent_reorderable_modules():
     parser = PageParser()
     parser.feed((WEB / "index.html").read_text())
     assert parser.modules == 4  # three examples plus the upload module
+    assert parser.phrase_modules == 3
     assert parser.module_grips == parser.modules
+    assert 'id="keyboardType"' in (WEB / "index.html").read_text()
+    assert 'value="laptop"' in (WEB / "index.html").read_text()
+    assert 'value="membrane"' in (WEB / "index.html").read_text()
+    assert 'value="mechanical"' in (WEB / "index.html").read_text()
     source = (WEB / "js/app.js").read_text()
     assert 'addEventListener("dragover"' in source
     assert 'querySelector(".module-up")' in source
     assert 'querySelector(".module-down")' in source
     assert 'id="moduleOrderStatus" class="sr-only" aria-live="polite"' in (WEB / "index.html").read_text()
+    assert 'document.querySelectorAll(".analyze-phrase-btn")' in source
+    assert 'K.SYNTH_KEYBOARDS[keyboardType]' in source
 
 
 def test_tabs_and_panels_have_matching_accessible_relationships():
@@ -102,15 +116,12 @@ def test_page_explains_scope_and_local_audio_handling():
 
 
 def test_example_audio_is_a_small_pcm_wav():
-    examples = json.loads((ROOT / "scripts/example_wavs.json").read_text())
-    assert len(examples) == 3
-    for example in examples:
-        wav = (WEB / "audio" / example["file"]).read_bytes()
-        assert wav[:4] == b"RIFF" and wav[8:12] == b"WAVE"
-        assert int.from_bytes(wav[22:24], "little") == 1  # mono
-        assert int.from_bytes(wav[24:28], "little") == 16000
-        assert int.from_bytes(wav[34:36], "little") == 16
-        assert len(wav) < 200_000
+    wav = (WEB / "audio/synthetic-demo.wav").read_bytes()
+    assert wav[:4] == b"RIFF" and wav[8:12] == b"WAVE"
+    assert int.from_bytes(wav[22:24], "little") == 1  # mono
+    assert int.from_bytes(wav[24:28], "little") == 16000
+    assert int.from_bytes(wav[34:36], "little") == 16
+    assert len(wav) < 100_000
 
 
 def test_example_wav_recognizes_end_to_end_when_node_is_available():

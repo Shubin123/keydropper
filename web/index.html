@@ -81,41 +81,47 @@
       <section class="audio-workbench" aria-labelledby="audioWorkbenchTitle">
         <div class="workbench-heading">
           <div>
-            <h2 id="audioWorkbenchTitle">Keyboard audio modules</h2>
-            <p class="cap">Choose a clip to inspect. Drag by the grip, or use the move buttons to arrange the stack.</p>
+            <h2 id="audioWorkbenchTitle">Keyboard and phrase modules</h2>
+            <p class="cap">Choose a simulated keyboard, then generate one phrase at a time. Reorder phrases by dragging their grip or using the move buttons.</p>
           </div>
-          <span class="badge">3 labeled examples · local WAV upload</span>
+          <span class="badge">one review track · local processing</span>
+        </div>
+        <div class="keyboard-picker card">
+          <label for="keyboardType">Simulated keyboard type</label>
+          <select id="keyboardType">
+            <option value="laptop">Laptop scissor switch</option>
+            <option value="membrane">Membrane keyboard</option>
+            <option value="mechanical" selected>Mechanical keyboard</option>
+          </select>
+          <span class="cap">Changing this option changes the generated key signatures and trains the matching synthetic recognizer.</span>
         </div>
         <div id="audioModuleStack" class="audio-module-stack" role="list" aria-label="Reorderable keyboard audio modules">
-          <article class="audio-module" role="listitem" data-module-title="Slow sample">
+          <article class="audio-module phrase-module" role="listitem" data-module-title="Short sample">
             <header class="module-header">
-              <button class="module-grab" type="button" draggable="true" aria-label="Drag Slow sample to reorder" title="Drag to reorder">⠿</button>
-              <div class="module-title"><span class="module-kicker">EXAMPLE 01</span><h3>Slow sample</h3></div>
-              <div class="module-actions"><button class="module-up" type="button" aria-label="Move Slow sample up">↑</button><button class="module-down" type="button" aria-label="Move Slow sample down">↓</button></div>
+              <button class="module-grab" type="button" draggable="true" aria-label="Drag Short sample to reorder" title="Drag to reorder">⠿</button>
+              <div class="module-title"><span class="module-kicker">PHRASE 01</span><h3>Short sample</h3></div>
+              <div class="module-actions"><button class="module-up" type="button" aria-label="Move Short sample up">↑</button><button class="module-down" type="button" aria-label="Move Short sample down">↓</button></div>
             </header>
-            <p class="cap">Four separated keys · known sequence: <code>demo</code></p>
-            <audio controls preload="none" src="./audio/synthetic-demo.wav">Your browser does not support WAV playback.</audio>
-            <div class="module-footer"><button class="analyze-example-btn" type="button" data-wav="./audio/synthetic-demo.wav" data-expected="demo">Analyze this clip</button><a href="./audio/synthetic-demo.wav" download>Download WAV</a></div>
+            <p class="cap">Four keys at a relaxed pace · known sequence: <code>demo</code></p>
+            <div class="module-footer"><button class="analyze-phrase-btn" type="button" data-text="demo" data-seed="84219" data-kps="4">Generate and analyze</button></div>
           </article>
-          <article class="audio-module" role="listitem" data-module-title="Spaced phrase">
+          <article class="audio-module phrase-module" role="listitem" data-module-title="Spaced phrase">
             <header class="module-header">
               <button class="module-grab" type="button" draggable="true" aria-label="Drag Spaced phrase to reorder" title="Drag to reorder">⠿</button>
-              <div class="module-title"><span class="module-kicker">EXAMPLE 02</span><h3>Spaced phrase</h3></div>
+              <div class="module-title"><span class="module-kicker">PHRASE 02</span><h3>Spaced phrase</h3></div>
               <div class="module-actions"><button class="module-up" type="button" aria-label="Move Spaced phrase up">↑</button><button class="module-down" type="button" aria-label="Move Spaced phrase down">↓</button></div>
             </header>
             <p class="cap">Eleven keys with a word break · known sequence: <code>hello world</code></p>
-            <audio controls preload="none" src="./audio/synthetic-hello-world.wav">Your browser does not support WAV playback.</audio>
-            <div class="module-footer"><button class="analyze-example-btn" type="button" data-wav="./audio/synthetic-hello-world.wav" data-expected="hello world">Analyze this clip</button><a href="./audio/synthetic-hello-world.wav" download>Download WAV</a></div>
+            <div class="module-footer"><button class="analyze-phrase-btn" type="button" data-text="hello world" data-seed="11" data-kps="2.5">Generate and analyze</button></div>
           </article>
-          <article class="audio-module" role="listitem" data-module-title="Medium pace">
+          <article class="audio-module phrase-module" role="listitem" data-module-title="Medium pace">
             <header class="module-header">
               <button class="module-grab" type="button" draggable="true" aria-label="Drag Medium pace to reorder" title="Drag to reorder">⠿</button>
-              <div class="module-title"><span class="module-kicker">EXAMPLE 03</span><h3>Medium pace</h3></div>
+              <div class="module-title"><span class="module-kicker">PHRASE 03</span><h3>Medium pace</h3></div>
               <div class="module-actions"><button class="module-up" type="button" aria-label="Move Medium pace up">↑</button><button class="module-down" type="button" aria-label="Move Medium pace down">↓</button></div>
             </header>
             <p class="cap">A different phrase and rhythm · known sequence: <code>blue team</code></p>
-            <audio controls preload="none" src="./audio/synthetic-blue-team.wav">Your browser does not support WAV playback.</audio>
-            <div class="module-footer"><button class="analyze-example-btn" type="button" data-wav="./audio/synthetic-blue-team.wav" data-expected="blue team">Analyze this clip</button><a href="./audio/synthetic-blue-team.wav" download>Download WAV</a></div>
+            <div class="module-footer"><button class="analyze-phrase-btn" type="button" data-text="blue team" data-seed="38" data-kps="3">Generate and analyze</button></div>
           </article>
           <article class="audio-module upload-module" role="listitem" data-module-title="WAV upload">
             <header class="module-header">
@@ -137,6 +143,7 @@
         <section class="card review-card" aria-labelledby="reviewTrackTitle">
           <div class="review-heading"><div><span class="module-kicker">SELECTED MODULE</span><h3 id="reviewTrackTitle">Audio review track</h3></div><span id="sampleStatus" class="status" role="status" aria-live="polite">Ready · local processing</span></div>
           <audio id="sampleAudio" controls preload="metadata" src="./audio/synthetic-demo.wav">Your browser does not support WAV playback.</audio>
+          <a id="downloadCurrentWav" class="download-current" href="./audio/synthetic-demo.wav" download="keydropper-example.wav">Download current WAV</a>
           <div class="timeline-heading">
             <h4>Waveform and key sequence</h4>
             <span id="playheadTime" class="status">00:00.000</span>

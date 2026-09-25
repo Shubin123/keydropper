@@ -235,7 +235,7 @@
     return samples;
   }
 
-  let sampleRecognizer = null;
+  const sampleRecognizers = new Map();
   let sampleFrames = 0;
 
   function formatTimestamp(sample) {
@@ -443,69 +443,101 @@
     return { aligned: aligned.length, matches, items: aligned };
   }
 
-  async function analyzeWav(buffer, expectedText, sourceLabel) {
+  function encodePcm16Wav(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2), view = new DataView(buffer);
+    const writeTag = (offset, tag) => { for (let i = 0; i < tag.length; i++) view.setUint8(offset + i, tag.charCodeAt(i)); };
+    const dataBytes = samples.length * 2;
+    writeTag(0, "RIFF"); view.setUint32(4, 36 + dataBytes, true); writeTag(8, "WAVE");
+    writeTag(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeTag(36, "data"); view.setUint32(40, dataBytes, true);
+    for (let i = 0; i < samples.length; i++) {
+      const value = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(44 + i * 2, Math.round(value * (value < 0 ? 32768 : 32767)), true);
+    }
+    return buffer;
+  }
+
+  async function analyzeWav(buffer, expectedText, sourceLabel, keyboardType) {
     const status = $("sampleStatus"), result = $("sampleResult");
+    const profile = K.SYNTH_KEYBOARDS[keyboardType];
     status.textContent = "Reading WAV locally…";
     const samples = decodeExampleWav(buffer);
     await tick();
-    if (!sampleRecognizer) {
+    let recognizer = sampleRecognizers.get(keyboardType);
+    if (!recognizer) {
       status.textContent = "Training the local recognizer…";
       await tick();
       sampleFrames = K.features.inferNFrames(K.CFG.segment.windowMs);
-      const train = K.data.buildTrainingSet(K.DEFAULT_KEYS, 12, 212);
-      sampleRecognizer = new K.models.KNN(3).fit(K.features.featurize(train.clips, sampleFrames), train.labels);
+      const clips = [], labels = [];
+      for (const key of K.DEFAULT_KEYS) for (let i = 0; i < 12; i++) {
+        clips.push(K.synth.keySignature(key, K.CFG.segment.windowMs, new K.Rng(212 + i + key.charCodeAt(0)), profile.seed, keyboardType));
+        labels.push(key);
+      }
+      recognizer = new K.models.KNN(3).fit(K.features.featurize(clips, sampleFrames), labels);
+      sampleRecognizers.set(keyboardType, recognizer);
     }
     const detected = K.segment.segment(samples);
     if (!detected.clips.length) throw new Error("No keyboard onsets were detected in the WAV.");
-    const predicted = sampleRecognizer.predict(K.features.featurize(detected.clips, sampleFrames));
+    const predicted = recognizer.predict(K.features.featurize(detected.clips, sampleFrames));
     const expected = expectedText === null ? null : Array.from(expectedText.toLowerCase());
     const summary = renderKeySequence(predicted, detected.onsets, expected);
     if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
     currentAudioUrl = URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
     timelineAudio.src = currentAudioUrl;
     timelineAudio.load();
+    $("downloadCurrentWav").href = currentAudioUrl;
+    $("downloadCurrentWav").download = `${sourceLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.wav`;
     renderAudioTimeline(samples, detected.onsets, summary.items);
     result.textContent = expected === null
-      ? `${sourceLabel}: predicted ${predicted.length} keys in timestamp order. Add expected text to see label matches.`
-      : `${sourceLabel}: ${summary.matches}/${summary.aligned} ordered labels matched · ${predicted.length} keys predicted.`;
+      ? `${sourceLabel} · ${profile.label}: predicted ${predicted.length} keys in timestamp order. Add expected text to see label matches.`
+      : `${sourceLabel} · ${profile.label}: ${summary.matches}/${summary.aligned} ordered labels matched · ${predicted.length} keys predicted.`;
     status.textContent = "Analyzed locally · file was not uploaded";
   }
 
+  let analysisBusy = false;
   async function runModuleAnalysis(button, operation) {
-    button.disabled = true;
+    if (analysisBusy) return;
+    analysisBusy = true;
+    document.querySelectorAll(".analyze-phrase-btn, #analyzeUploadBtn").forEach((control) => { control.disabled = true; });
     try { await operation(); }
     catch (error) {
       $("sampleStatus").textContent = "Could not analyze audio";
       $("sampleResult").textContent = error.message;
       $("sampleSequence").replaceChildren();
-    } finally { button.disabled = false; }
+    } finally {
+      analysisBusy = false;
+      document.querySelectorAll(".analyze-phrase-btn, #analyzeUploadBtn").forEach((control) => { control.disabled = false; });
+    }
   }
 
-  document.querySelectorAll(".analyze-example-btn").forEach((button) => {
+  document.querySelectorAll(".analyze-phrase-btn").forEach((button) => {
     button.addEventListener("click", () => runModuleAnalysis(button, async () => {
-      const response = await fetch(button.dataset.wav);
-      if (!response.ok) throw new Error(`Could not load the WAV (HTTP ${response.status}).`);
       const module = button.closest(".audio-module");
       const title = module.querySelector("h3").textContent;
+      const keyboardType = $("keyboardType").value;
+      const profile = K.SYNTH_KEYBOARDS[keyboardType];
       $("reviewTrackTitle").textContent = title;
-      await analyzeWav(await response.arrayBuffer(), button.dataset.expected, title);
+      $("sampleStatus").textContent = `Generating ${profile.label} audio…`;
+      await tick();
+      const stream = K.synth.renderStream(button.dataset.text, parseInt(button.dataset.seed, 10), K.CFG.segment.windowMs, {
+        keysPerSecond: parseFloat(button.dataset.kps), backgroundNoise: 0.002,
+        keyboardType, keyboardSeed: profile.seed,
+      });
+      await analyzeWav(encodePcm16Wav(stream.samples, K.CFG.audio.sr), button.dataset.text, title, keyboardType);
     }));
   });
 
   $("analyzeUploadBtn").addEventListener("click", async () => {
     const button = $("analyzeUploadBtn"), file = $("wavFileInput").files[0];
-    button.disabled = true;
-    try {
+    await runModuleAnalysis(button, async () => {
       if (!file) throw new Error("Choose a WAV file first.");
       const rawExpected = $("expectedSequence").value.toLowerCase();
       if (rawExpected && !/^[a-z ]+$/.test(rawExpected)) throw new Error("Expected text can contain English letters and spaces only.");
+      const keyboardType = $("keyboardType").value;
       $("reviewTrackTitle").textContent = file.name;
-      await analyzeWav(await file.arrayBuffer(), rawExpected || null, file.name);
-    } catch (error) {
-      $("sampleStatus").textContent = "Could not analyze WAV";
-      $("sampleResult").textContent = error.message;
-      $("sampleSequence").replaceChildren();
-    } finally { button.disabled = false; }
+      await analyzeWav(await file.arrayBuffer(), rawExpected || null, file.name, keyboardType);
+    });
   });
 
   // Reorder the module stack with pointer drag or the adjacent move buttons.
@@ -519,7 +551,7 @@
       item.querySelector(".module-up").disabled = i === 0;
       item.querySelector(".module-down").disabled = i === modules.length - 1;
       const kicker = item.querySelector(".module-kicker");
-      if (!item.classList.contains("upload-module")) kicker.textContent = `EXAMPLE ${String(modules.slice(0, i + 1).filter((x) => !x.classList.contains("upload-module")).length).padStart(2, "0")}`;
+      if (item.classList.contains("phrase-module")) kicker.textContent = `PHRASE ${String(modules.slice(0, i + 1).filter((x) => x.classList.contains("phrase-module")).length).padStart(2, "0")}`;
     });
   }
   Array.from(moduleStack.children).forEach((module) => {

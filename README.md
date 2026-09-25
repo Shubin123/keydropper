@@ -17,10 +17,11 @@ The whole pipeline is also ported to a **self-contained, dependency-free web app
   keyboards. Works anywhere, even from `file://`.
 - **Live capture** — grant mic access, type to teach it your own keyboard, then let it
   read you; toggle masking to defend in real time. Needs HTTPS (Pages) or localhost.
-- **Labeled WAV examples** — play or analyze three generated clips (`demo`, `hello world`,
-  `blue team`) using the same browser recognizer as the lab. They are toy synthesized
-  audio, not physical keyboard recordings. Drag modules to reorder them, or use the move
-  buttons for keyboard and touch access. Regenerate/check them with
+- **Keyboard and phrase modules** — choose one of three simulated keyboard types from a
+  dropdown, then generate one of three labeled typing samples into the single review track.
+  These are toy acoustic profiles, not recordings of physical keyboards. Drag phrase
+  modules to reorder them, or use the move buttons for keyboard and touch access. Regenerate
+  the reference WAV and check all profile/sample combinations with
   `node scripts/generate_example_wav.js` and `node scripts/check_example_wav.js`.
 - **Local WAV analysis** — select a mono 16 kHz PCM16 WAV file for in-browser analysis.
   The waveform and timestamped expected/predicted key markers share one seekable timeline;
