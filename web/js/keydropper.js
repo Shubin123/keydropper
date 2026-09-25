@@ -289,13 +289,17 @@
     let last = -refractory - 1, armed = true;
     for (let i = 1; i < sm.length; i++) {
       const rising = sm[i] > sm[i - 1];
-      if (armed && sm[i] >= threshold && rising) {
-        if (centers[i] - last >= refractory) {
-          // Timestamp the leading edge that crossed the noise threshold. The
-          // local peak is useful for feature alignment, but it trails the audible
-          // impact by several milliseconds and makes the timeline look late.
-          onsets.push(centers[i]); last = centers[i]; armed = false;
-        }
+      const afterRefractory = centers[i] - last >= refractory;
+      // Some keyboard profiles have a resonant tail that remains above the
+      // noise threshold until the next key.  A fresh, steep attack is still a
+      // valid onset after the refractory period; waiting for the tail to fall
+      // below threshold would skip that key and shift every later label.
+      const sharpReattack = !armed && sm[i] >= sm[i - 1] * 1.5;
+      if (sm[i] >= threshold && rising && afterRefractory && (armed || sharpReattack)) {
+        // Timestamp the leading edge that crossed the noise threshold. The
+        // local peak is useful for feature alignment, but it trails the audible
+        // impact by several milliseconds and makes the timeline look late.
+        onsets.push(centers[i]); last = centers[i]; armed = false;
       } else if (sm[i] < threshold) armed = true;
     }
     return onsets;

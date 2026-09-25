@@ -73,3 +73,16 @@ const referenceWav = fs.readFileSync(path.join(repo, 'web/audio/synthetic-demo.w
 assert.equal(referenceWav.toString('ascii', 0, 4), 'RIFF');
 assert.equal(referenceWav.readUInt32LE(24), sampleRate);
 assert.deepEqual(referenceWav, mechanicalDemo, 'the downloadable reference should match the generated mechanical demo');
+
+// A fast membrane stream has long enough tails to expose re-arm errors in onset
+// detection.  Every detected timestamp must still map to the matching impact.
+const membrane = K.SYNTH_KEYBOARDS.membrane;
+const rapid = K.synth.renderStream('sync test', 33, K.CFG.segment.windowMs, {
+  keysPerSecond: 7.5, backgroundNoise: 0.002, keyboardType: 'membrane', keyboardSeed: membrane.seed,
+});
+const rapidOnsets = K.segment.detectOnsets(rapid.samples);
+assert.equal(rapidOnsets.length, rapid.events.length, 'fast membrane stream onset count');
+rapidOnsets.forEach((onset, index) => {
+  const errorMs = Math.abs(onset - rapid.events[index].onset) * 1000 / sampleRate;
+  assert.ok(errorMs <= 8, `fast membrane timestamp ${index} was ${errorMs.toFixed(1)} ms from the known impact`);
+});
