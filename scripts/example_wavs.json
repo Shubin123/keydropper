@@ -1,0 +1,5 @@
+[
+  {"file":"synthetic-demo.wav","title":"Slow sample","text":"demo","seed":84219,"keysPerSecond":4,"backgroundNoise":0.002},
+  {"file":"synthetic-hello-world.wav","title":"Spaced phrase","text":"hello world","seed":11,"keysPerSecond":2.5,"backgroundNoise":0.002},
+  {"file":"synthetic-blue-team.wav","title":"Medium pace","text":"blue team","seed":38,"keysPerSecond":3,"backgroundNoise":0.002}
+]

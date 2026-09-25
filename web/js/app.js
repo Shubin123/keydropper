@@ -471,17 +471,25 @@
     status.textContent = "Analyzed locally · file was not uploaded";
   }
 
-  $("analyzeSampleBtn").addEventListener("click", async () => {
-    const button = $("analyzeSampleBtn"); button.disabled = true;
-    try {
-      const response = await fetch("./audio/synthetic-demo.wav");
-      if (!response.ok) throw new Error(`Could not load the WAV (HTTP ${response.status}).`);
-      await analyzeWav(await response.arrayBuffer(), "demo", "Built-in sample");
-    } catch (error) {
-      $("sampleStatus").textContent = "Could not analyze sample";
+  async function runModuleAnalysis(button, operation) {
+    button.disabled = true;
+    try { await operation(); }
+    catch (error) {
+      $("sampleStatus").textContent = "Could not analyze audio";
       $("sampleResult").textContent = error.message;
       $("sampleSequence").replaceChildren();
     } finally { button.disabled = false; }
+  }
+
+  document.querySelectorAll(".analyze-example-btn").forEach((button) => {
+    button.addEventListener("click", () => runModuleAnalysis(button, async () => {
+      const response = await fetch(button.dataset.wav);
+      if (!response.ok) throw new Error(`Could not load the WAV (HTTP ${response.status}).`);
+      const module = button.closest(".audio-module");
+      const title = module.querySelector("h3").textContent;
+      $("reviewTrackTitle").textContent = title;
+      await analyzeWav(await response.arrayBuffer(), button.dataset.expected, title);
+    }));
   });
 
   $("analyzeUploadBtn").addEventListener("click", async () => {
@@ -491,6 +499,7 @@
       if (!file) throw new Error("Choose a WAV file first.");
       const rawExpected = $("expectedSequence").value.toLowerCase();
       if (rawExpected && !/^[a-z ]+$/.test(rawExpected)) throw new Error("Expected text can contain English letters and spaces only.");
+      $("reviewTrackTitle").textContent = file.name;
       await analyzeWav(await file.arrayBuffer(), rawExpected || null, file.name);
     } catch (error) {
       $("sampleStatus").textContent = "Could not analyze WAV";
@@ -498,6 +507,50 @@
       $("sampleSequence").replaceChildren();
     } finally { button.disabled = false; }
   });
+
+  // Reorder the module stack with pointer drag or the adjacent move buttons.
+  const moduleStack = $("audioModuleStack");
+  let draggingModule = null;
+  function announceModuleOrder(module) {
+    const modules = Array.from(moduleStack.children);
+    const index = modules.indexOf(module);
+    $("moduleOrderStatus").textContent = `${module.dataset.moduleTitle} moved to position ${index + 1} of ${modules.length}.`;
+    modules.forEach((item, i) => {
+      item.querySelector(".module-up").disabled = i === 0;
+      item.querySelector(".module-down").disabled = i === modules.length - 1;
+      const kicker = item.querySelector(".module-kicker");
+      if (!item.classList.contains("upload-module")) kicker.textContent = `EXAMPLE ${String(modules.slice(0, i + 1).filter((x) => !x.classList.contains("upload-module")).length).padStart(2, "0")}`;
+    });
+  }
+  Array.from(moduleStack.children).forEach((module) => {
+    module.querySelector(".module-grab").addEventListener("dragstart", (event) => {
+      draggingModule = module;
+      module.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", module.dataset.moduleTitle);
+    });
+    module.querySelector(".module-grab").addEventListener("dragend", () => {
+      module.classList.remove("is-dragging"); draggingModule = null; announceModuleOrder(module);
+    });
+    module.querySelector(".module-up").addEventListener("click", () => {
+      const previous = module.previousElementSibling;
+      if (previous) { moduleStack.insertBefore(module, previous); announceModuleOrder(module); module.querySelector(".module-up").focus(); }
+    });
+    module.querySelector(".module-down").addEventListener("click", () => {
+      const next = module.nextElementSibling;
+      if (next) { moduleStack.insertBefore(next, module); announceModuleOrder(module); module.querySelector(".module-down").focus(); }
+    });
+  });
+  moduleStack.addEventListener("dragover", (event) => {
+    if (!draggingModule) return;
+    event.preventDefault();
+    const target = event.target.closest(".audio-module");
+    if (!target || target === draggingModule) return;
+    const rect = target.getBoundingClientRect();
+    moduleStack.insertBefore(draggingModule, event.clientY < rect.top + rect.height / 2 ? target : target.nextSibling);
+  });
+  moduleStack.addEventListener("drop", (event) => { event.preventDefault(); if (draggingModule) announceModuleOrder(draggingModule); });
+  announceModuleOrder(moduleStack.firstElementChild);
 
   // ------------------------------------------------------------- live capture ----
   const live = {

@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import json
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,9 @@ class PageParser(HTMLParser):
         self.tabs = {}
         self.panels = {}
         self.local_assets = []
+        self.audio_assets = []
+        self.modules = 0
+        self.module_grips = 0
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
@@ -28,6 +32,12 @@ class PageParser(HTMLParser):
             self.panels[attrs.get("id")] = attrs.get("aria-labelledby")
         if tag == "script" and attrs.get("src"):
             self.local_assets.append(attrs["src"])
+        if tag == "audio" and attrs.get("src"):
+            self.audio_assets.append(attrs["src"])
+        if tag == "article" and attrs.get("role") == "listitem":
+            self.modules += 1
+        if tag == "button" and "module-grab" in attrs.get("class", "").split() and attrs.get("draggable") == "true":
+            self.module_grips += 1
         if tag == "link" and attrs.get("rel") == "stylesheet":
             self.local_assets.append(attrs["href"])
 
@@ -38,6 +48,20 @@ def test_pages_assets_are_local_and_present():
     assert parser.local_assets
     assert all(not asset.startswith(("http:", "https:", "//")) for asset in parser.local_assets)
     assert all((WEB / asset.removeprefix("./")).is_file() for asset in parser.local_assets)
+    assert len(set(parser.audio_assets)) == 3
+    assert all((WEB / asset.removeprefix("./")).is_file() for asset in parser.audio_assets)
+
+
+def test_audio_examples_are_independent_reorderable_modules():
+    parser = PageParser()
+    parser.feed((WEB / "index.html").read_text())
+    assert parser.modules == 4  # three examples plus the upload module
+    assert parser.module_grips == parser.modules
+    source = (WEB / "js/app.js").read_text()
+    assert 'addEventListener("dragover"' in source
+    assert 'querySelector(".module-up")' in source
+    assert 'querySelector(".module-down")' in source
+    assert 'id="moduleOrderStatus" class="sr-only" aria-live="polite"' in (WEB / "index.html").read_text()
 
 
 def test_tabs_and_panels_have_matching_accessible_relationships():
@@ -78,12 +102,15 @@ def test_page_explains_scope_and_local_audio_handling():
 
 
 def test_example_audio_is_a_small_pcm_wav():
-    wav = (WEB / "audio/synthetic-demo.wav").read_bytes()
-    assert wav[:4] == b"RIFF" and wav[8:12] == b"WAVE"
-    assert int.from_bytes(wav[22:24], "little") == 1  # mono
-    assert int.from_bytes(wav[24:28], "little") == 16000
-    assert int.from_bytes(wav[34:36], "little") == 16
-    assert len(wav) < 100_000
+    examples = json.loads((ROOT / "scripts/example_wavs.json").read_text())
+    assert len(examples) == 3
+    for example in examples:
+        wav = (WEB / "audio" / example["file"]).read_bytes()
+        assert wav[:4] == b"RIFF" and wav[8:12] == b"WAVE"
+        assert int.from_bytes(wav[22:24], "little") == 1  # mono
+        assert int.from_bytes(wav[24:28], "little") == 16000
+        assert int.from_bytes(wav[34:36], "little") == 16
+        assert len(wav) < 200_000
 
 
 def test_example_wav_recognizes_end_to_end_when_node_is_available():
