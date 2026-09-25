@@ -23,6 +23,7 @@ class PageParser(HTMLParser):
         self.modules = 0
         self.phrase_modules = 0
         self.module_grips = 0
+        self.phrases = []
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
@@ -44,6 +45,8 @@ class PageParser(HTMLParser):
                 self.phrase_modules += 1
         if tag == "button" and "module-grab" in attrs.get("class", "").split() and attrs.get("draggable") == "true":
             self.module_grips += 1
+        if tag == "button" and "analyze-phrase-btn" in attrs.get("class", "").split():
+            self.phrases.append({key: attrs.get(key) for key in ("data-text", "data-seed", "data-kps")})
         if tag == "link" and attrs.get("rel") == "stylesheet":
             self.local_assets.append(attrs["href"])
 
@@ -76,6 +79,11 @@ def test_audio_examples_are_independent_reorderable_modules():
     assert 'id="moduleOrderStatus" class="sr-only" aria-live="polite"' in (WEB / "index.html").read_text()
     assert 'document.querySelectorAll(".analyze-phrase-btn")' in source
     assert 'K.SYNTH_KEYBOARDS[keyboardType]' in source
+    configured = json.loads((ROOT / "scripts/example_wavs.json").read_text())
+    assert parser.phrases == [
+        {"data-text": item["text"], "data-seed": str(item["seed"]), "data-kps": str(item["keysPerSecond"])}
+        for item in configured
+    ]
 
 
 def test_tabs_and_panels_have_matching_accessible_relationships():
